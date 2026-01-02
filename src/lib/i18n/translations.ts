@@ -719,6 +719,18 @@ export const translations = {
     en: 'Recalculation complete!',
     cs: 'Přepočet dokončen!',
   },
+  'settings.saveFailed': {
+    en: 'Failed to save settings',
+    cs: 'Uložení nastavení se nezdařilo',
+  },
+  'settings.saveSuccess': {
+    en: 'Settings saved successfully',
+    cs: 'Nastavení bylo uloženo',
+  },
+  'settings.exportError': {
+    en: 'Export failed',
+    cs: 'Export se nezdařil',
+  },
   'settings.currentNetWorthLabel': {
     en: 'Current Net Worth',
     cs: 'Aktuální čisté jmění',
