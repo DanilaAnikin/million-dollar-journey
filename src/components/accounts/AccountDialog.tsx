@@ -65,12 +65,10 @@ export function AccountDialog({
   }, [open]);
 
   async function fetchCategories() {
-    console.log('AccountDialog: Fetching categories...');
     setLoadingCategories(true);
 
     try {
       const cats = await getCategories();
-      console.log('AccountDialog: Received categories:', cats);
       setCategories(cats);
     } catch (error) {
       console.error('AccountDialog: Error fetching categories:', error);
@@ -101,12 +99,6 @@ export function AccountDialog({
 
   const isInvestment = watch('isInvestment');
 
-  // Debug form errors
-  useEffect(() => {
-    if (Object.keys(errors).length > 0) {
-      console.log('Form validation errors:', errors);
-    }
-  }, [errors]);
 
   useEffect(() => {
     if (account) {
@@ -133,14 +125,11 @@ export function AccountDialog({
   }, [account, reset]);
 
   const handleFormSubmit = async (data: AccountFormData) => {
-    console.log('=== AccountDialog handleFormSubmit START ===');
-    console.log('Submitting data:', data);
     try {
       await onSubmit(data);
-      console.log('=== AccountDialog handleFormSubmit SUCCESS ===');
       onOpenChange(false);
     } catch (error) {
-      console.error('=== AccountDialog handleFormSubmit ERROR ===', error);
+      console.error('AccountDialog: Error submitting form:', error);
     }
   };
 

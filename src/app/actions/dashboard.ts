@@ -41,7 +41,6 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
 
   // Await live rates from API
   const rates = await getLiveRates();
-  console.log('Dashboard: Using live rates', { CZK: rates.CZK, EUR: rates.EUR });
 
   // Fetch all data in parallel
   const [
@@ -64,12 +63,6 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
   // Calculate the financial projection using profile's target settings
   const targetAmount = profile?.target_amount_usd;
   const targetDate = profile?.target_date ? new Date(profile.target_date) : undefined;
-
-  console.log('getDashboardData: Using profile target settings:', {
-    targetAmount,
-    targetDate,
-    source: targetAmount && targetDate ? 'user profile' : 'defaults',
-  });
 
   const calculation = await calculateMonthlyContribution(
     accounts,

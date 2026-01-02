@@ -5,14 +5,11 @@ import { revalidatePath } from 'next/cache';
 import type { Transaction, TransactionType, Currency } from '@/types/database';
 
 export async function getTransactions(): Promise<Transaction[]> {
-  console.log('=== getTransactions START ===');
-
   const supabase = await createClient();
 
   // Auth with fallback
   let userId = (await supabase.auth.getUser()).data.user?.id;
   if (!userId) {
-    console.log('getTransactions: getUser failed, trying getSession...');
     const { data: { session } } = await supabase.auth.getSession();
     userId = session?.user?.id;
   }
@@ -21,8 +18,6 @@ export async function getTransactions(): Promise<Transaction[]> {
     console.error('getTransactions: No authenticated user');
     return [];
   }
-
-  console.log('getTransactions: Fetching for user', userId);
 
   const { data, error } = await supabase
     .from('transactions')
@@ -37,25 +32,18 @@ export async function getTransactions(): Promise<Transaction[]> {
 
   if (error) {
     console.error('getTransactions: Query error', error);
-    // Log the specific error for debugging
-    console.error('Error code:', error.code);
-    console.error('Error message:', error.message);
     return [];
   }
 
-  console.log('getTransactions: Found', data?.length || 0, 'rows');
   return data || [];
 }
 
 export async function getAccounts() {
-  console.log('getAccounts: Starting...');
-
   const supabase = await createClient();
 
   // Auth with fallback
   let userId = (await supabase.auth.getUser()).data.user?.id;
   if (!userId) {
-    console.log('getAccounts: getUser failed, trying getSession...');
     const { data: { session } } = await supabase.auth.getSession();
     userId = session?.user?.id;
   }
@@ -115,8 +103,6 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
   data: Transaction | null;
   error: string | null;
 }> {
-  console.log('=== createTransaction START ===', input);
-
   const supabase = await createClient();
 
   // Get authenticated user with fallback
@@ -129,8 +115,6 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
   if (!userId) {
     return { data: null, error: 'You must be logged in' };
   }
-
-  console.log('createTransaction: User', userId);
 
   // Handle balance updates based on transaction type
   if (input.type === 'transfer' && input.toAccountId) {
@@ -213,8 +197,6 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
     console.error('createTransaction: Insert error', error);
     return { data: null, error: error.message };
   }
-
-  console.log('createTransaction: Created', data.id);
 
   revalidatePath('/');
   revalidatePath('/transactions');

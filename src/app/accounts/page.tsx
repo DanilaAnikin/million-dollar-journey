@@ -32,17 +32,11 @@ export default function AccountsPage() {
 
   async function loadData() {
     try {
-      console.log('AccountsPage: Loading data...');
-
       const result = await getAccounts();
 
       const fetchedAccounts = result.accounts;
       const fetchedCategories = result.categories;
       const fetchedTotals = result.totals;
-
-      console.log('AccountsPage: accounts loaded:', fetchedAccounts?.length);
-      console.log('AccountsPage: categories loaded:', fetchedCategories?.length);
-      console.log('AccountsPage: totals calculated:', fetchedTotals);
 
       setAccounts(fetchedAccounts);
       setCategories(fetchedCategories);
@@ -54,13 +48,6 @@ export default function AccountsPage() {
         liabilitiesUSD: fetchedTotals.liabilitiesUSD,
         rates: fetchedTotals.rates
       });
-
-      console.log('AccountsPage: Using server totals', {
-        totalUSD: fetchedTotals.totalUSD,
-        assetsUSD: fetchedTotals.assetsUSD,
-        liabilitiesUSD: fetchedTotals.liabilitiesUSD,
-      });
-      console.log('AccountsPage: Server totals match dashboard');
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -77,10 +64,6 @@ export default function AccountsPage() {
     interestRatePa: number;
     institution?: string;
   }) {
-    console.log('=== FORM SUBMIT START ===');
-    console.log('Form data:', data);
-    console.log('Editing account:', editingAccount);
-
     try {
       if (editingAccount) {
         const result = await updateAccount({
@@ -92,7 +75,6 @@ export default function AccountsPage() {
           interestRatePa: data.interestRatePa,
           institution: data.institution,
         });
-        console.log('updateAccount result:', result);
         if (result.error) {
           toast.error(result.error);
           return;
@@ -108,7 +90,6 @@ export default function AccountsPage() {
           interestRatePa: data.interestRatePa,
           institution: data.institution,
         });
-        console.log('createAccount result:', result);
         if (result.error) {
           toast.error(result.error);
           return;
@@ -116,11 +97,10 @@ export default function AccountsPage() {
         toast.success(t('accounts.createdSuccess'));
       }
 
-      console.log('=== FORM SUBMIT SUCCESS ===');
       await loadData();
       setEditingAccount(null);
     } catch (error) {
-      console.error('=== FORM SUBMIT ERROR ===', error);
+      console.error('Error submitting account form:', error);
       toast.error(t('common.somethingWentWrong'));
     }
   }
@@ -164,8 +144,6 @@ export default function AccountsPage() {
   }
 
   // Use server totals with server rates for consistency
-  console.log('AccountsPage: Displaying server total, NOT client calculation');
-
   const displayAssets = serverTotals
     ? serverTotals.assetsUSD * serverTotals.rates[globalCurrency as 'USD' | 'CZK' | 'EUR']
     : 0;

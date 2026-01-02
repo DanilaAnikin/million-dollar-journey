@@ -12,8 +12,6 @@ export async function updateProfile(data: {
   targetDate?: string;
   preferredCurrency?: Currency;
 }): Promise<{ success: boolean; error: string | null }> {
-  console.log('updateProfile: Input data', data);
-
   const supabase = await createClient();
 
   // Try getUser first, fallback to getSession
@@ -35,11 +33,8 @@ export async function updateProfile(data: {
       ? data.targetDate.toISOString().split('T')[0]
       : data.targetDate;
     updates.target_date = formattedDate;
-    console.log('updateProfile: Formatted target_date', formattedDate);
   }
   if (data.preferredCurrency !== undefined) updates.preferred_currency = data.preferredCurrency;
-
-  console.log('updateProfile: Updating profile for user', userId, 'with', updates);
 
   const { data: updateResult, error } = await supabase
     .from('profiles')
@@ -47,14 +42,10 @@ export async function updateProfile(data: {
     .eq('id', userId)
     .select();
 
-  console.log('updateProfile: Update result', { data: updateResult, error });
-
   if (error) {
     console.error('updateProfile: Error', error);
     return { success: false, error: error.message };
   }
-
-  console.log('Settings: Revalidating all paths after profile update');
 
   // AGGRESSIVE REVALIDATION - clear all cached data
   revalidatePath('/', 'layout');    // Root layout - CRITICAL for dashboard
@@ -81,16 +72,13 @@ export async function createCategory(input: CreateCategoryInput): Promise<{
   data: AccountCategory | null;
   error: string | null;
 }> {
-  console.log('createCategory: Starting with input', input);
   const supabase = await createClient();
 
   // Get authenticated user
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    console.log('createCategory: No user authenticated');
     return { data: null, error: 'Not authenticated' };
   }
-  console.log('createCategory: User authenticated', user.id);
 
   // Get the highest sort_order
   const { data: existing } = await supabase
@@ -120,7 +108,6 @@ export async function createCategory(input: CreateCategoryInput): Promise<{
     return { data: null, error: error.message };
   }
 
-  console.log('createCategory: Successfully created category', data);
   revalidatePath('/settings');
   revalidatePath('/accounts');
   return { data, error: null };
@@ -220,8 +207,6 @@ export async function exportUserData(): Promise<{
     if (!userId) {
       return { success: false, data: null, error: 'Not authenticated' };
     }
-
-    console.log('exportUserData: Exporting for user', userId);
 
     // Fetch all user data
     const [accountsRes, transactionsRes, categoriesRes, profileRes] = await Promise.all([
