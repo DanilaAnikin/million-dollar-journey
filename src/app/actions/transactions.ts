@@ -38,7 +38,7 @@ export async function getTransactions(): Promise<Transaction[]> {
   return data || [];
 }
 
-export async function getAccounts() {
+export async function getAccountsForTransactions() {
   const supabase = await createClient();
 
   // Auth with fallback
@@ -49,7 +49,7 @@ export async function getAccounts() {
   }
 
   if (!userId) {
-    console.error('getAccounts: No authenticated user');
+    console.error('getAccountsForTransactions: No authenticated user');
     return [];
   }
 
@@ -60,7 +60,7 @@ export async function getAccounts() {
     .eq('is_active', true);
 
   if (error) {
-    console.error('getAccounts: Error', error);
+    console.error('getAccountsForTransactions: Error', error);
     return [];
   }
 

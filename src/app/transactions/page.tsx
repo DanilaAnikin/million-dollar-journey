@@ -12,7 +12,7 @@ import {
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useCurrency } from '@/lib/contexts/CurrencyContext';
 import { formatDate } from '@/lib/utils';
-import { getTransactions, getAccounts } from '@/app/actions/transactions';
+import { getTransactions, getAccountsForTransactions } from '@/app/actions/transactions';
 import type { Transaction, Account, TransactionType, Currency } from '@/types/database';
 import { NewTransactionModal } from '@/components/transactions/NewTransactionModal';
 
@@ -66,7 +66,7 @@ export default function TransactionsPage() {
     try {
       const [txData, accData] = await Promise.all([
         getTransactions(),
-        getAccounts(),
+        getAccountsForTransactions(),
       ]);
 
       setTransactions(txData);

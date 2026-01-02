@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useCurrency } from '@/lib/contexts/CurrencyContext';
 import { createClient } from '@/lib/supabase/client';
-import { getAccounts, addTransaction, addTransfer, addAdjustment } from '@/app/actions/transactions';
+import { getAccountsForTransactions, addTransaction, addTransfer, addAdjustment } from '@/app/actions/transactions';
 import type { Account, TransactionType, Currency } from '@/types/database';
 
 interface NewTransactionModalProps {
@@ -133,7 +133,7 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
   async function loadAccounts() {
     setLoadingAccounts(true);
     try {
-      const data = await getAccounts();
+      const data = await getAccountsForTransactions();
       setAccounts(data);
       if (data.length > 0 && !accountId) {
         setAccountId(data[0].id);
