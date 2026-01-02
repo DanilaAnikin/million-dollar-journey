@@ -94,7 +94,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                   </div>
                   <div>
                     <p className="font-semibold text-sm">
-                      {tx.description || t(`transactionType.${tx.type}`)}
+                      {tx.description || t(`transactionType.${tx.type}` as any)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formatDate(tx.transaction_date)}
@@ -106,7 +106,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                   <span className={`hidden sm:inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                     isPositive ? 'pill-income' : 'pill-expense'
                   }`}>
-                    {t(`transactionType.${tx.type}`)}
+                    {t(`transactionType.${tx.type}` as any)}
                   </span>
                   {/* Amount */}
                   <span className={`font-semibold text-sm ${

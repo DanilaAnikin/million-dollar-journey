@@ -383,7 +383,7 @@ export default function SettingsPage() {
                     <div>
                       <p className="font-medium text-sm">{category.name}</p>
                       <p className="text-xs text-muted-foreground capitalize">
-                        {t(`category.${category.type}`)}
+                        {t(`category.${category.type}` as any)}
                       </p>
                     </div>
                   </div>

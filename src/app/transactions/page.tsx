@@ -125,7 +125,7 @@ export default function TransactionsPage() {
                 filterType === filter.value ? 'filter-pill-active' : ''
               }`}
             >
-              {t(filter.labelKey)}
+              {t(filter.labelKey as any)}
             </button>
           ))}
         </div>
