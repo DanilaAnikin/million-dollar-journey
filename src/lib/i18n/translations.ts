@@ -541,6 +541,34 @@ export const translations = {
     en: 'Add your first transaction to start tracking',
     cs: 'Přidejte svou první transakci a začněte sledovat',
   },
+  'transactions.note': {
+    en: 'Note',
+    cs: 'Poznámka',
+  },
+  'transactions.notePlaceholder': {
+    en: "What's this for?",
+    cs: 'K čemu to je?',
+  },
+  'transactions.saveTransaction': {
+    en: 'Save Transaction',
+    cs: 'Uložit transakci',
+  },
+  'transactions.newTransaction': {
+    en: 'New Transaction',
+    cs: 'Nová transakce',
+  },
+  'transactions.selectFromAccount': {
+    en: 'From account',
+    cs: 'Z účtu',
+  },
+  'transactions.selectToAccount': {
+    en: 'To account',
+    cs: 'Na účet',
+  },
+  'transactions.update': {
+    en: 'Update',
+    cs: 'Úprava',
+  },
 
   // Settings
   'settings.title': {

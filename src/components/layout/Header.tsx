@@ -104,7 +104,7 @@ export function Header({ title }: HeaderProps) {
             user={user}
             avatarContent={
               user ? (
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-xs font-semibold transition-transform hover:scale-105">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-xs font-semibold transition-transform hover:scale-105 cursor-pointer">
                   {getUserInitials()}
                 </div>
               ) : undefined

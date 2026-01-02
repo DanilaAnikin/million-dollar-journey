@@ -142,16 +142,15 @@ export function DashboardContent() {
 
   return (
     <div className="p-4 lg:p-6 space-y-6">
-      {/* Hero NetWorthCard - Full Width */}
-      <NetWorthCard
-        amount={netWorthUSD}
-        sourceCurrency="USD"
-        targetAmount={targetAmount}
-      />
+      {/* Hero Cards - Side by side on desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <NetWorthCard
+          amount={netWorthUSD}
+          sourceCurrency="USD"
+          targetAmount={targetAmount}
+        />
 
-      {/* Stats Grid */}
-      {calculation && (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+        {calculation && (
           <MonthlyGoalCard
             monthlyContributionUSD={calculation.monthlyContributionNeeded}
             monthsRemaining={calculation.monthsRemaining}
@@ -159,8 +158,8 @@ export function DashboardContent() {
             onTrack={calculation.onTrack}
             calculation={calculation}
           />
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Two-Column Grid for Accounts and Transactions */}
       <div className="grid gap-6 lg:grid-cols-2">

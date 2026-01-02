@@ -56,7 +56,7 @@ export function UserMenu({ user, avatarContent }: UserMenuProps) {
           className="relative rounded-full hover:bg-transparent p-0 h-auto w-auto"
         >
           {avatarContent || (
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted hover:bg-muted/80 transition-colors">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted hover:bg-muted/80 transition-colors cursor-pointer">
               <User className="h-4 w-4" strokeWidth={1.5} />
             </div>
           )}

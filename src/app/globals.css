@@ -336,15 +336,15 @@
 }
 
 .icon-container-sm {
-  @apply w-10 h-10 rounded-xl;
+  @apply flex items-center justify-center w-10 h-10 rounded-xl;
 }
 
 .icon-container-md {
-  @apply w-12 h-12 rounded-2xl;
+  @apply flex items-center justify-center w-12 h-12 rounded-2xl;
 }
 
 .icon-container-lg {
-  @apply w-14 h-14 rounded-2xl;
+  @apply flex items-center justify-center w-14 h-14 rounded-2xl;
 }
 
 /* Icon container color variants with dark mode support */
@@ -372,7 +372,7 @@
 
 /* Premium buttons */
 .btn-premium {
-  @apply h-12 rounded-2xl font-semibold shadow-sm;
+  @apply h-12 rounded-2xl font-semibold shadow-sm cursor-pointer;
   @apply transition-all duration-200;
   @apply hover:shadow-md hover:brightness-105;
   @apply active:scale-[0.98] active:brightness-95;
@@ -380,7 +380,7 @@
 }
 
 .btn-premium-lg {
-  @apply h-14 rounded-2xl font-semibold text-base shadow-sm;
+  @apply h-14 rounded-2xl font-semibold text-base shadow-sm cursor-pointer;
   @apply transition-all duration-200;
   @apply hover:shadow-md hover:brightness-105;
   @apply active:scale-[0.98] active:brightness-95;
@@ -400,7 +400,7 @@
 
 /* FAB (Floating Action Button) */
 .fab {
-  @apply w-14 h-14 rounded-full shadow-lg;
+  @apply w-14 h-14 rounded-full shadow-lg cursor-pointer;
   @apply flex items-center justify-center;
   @apply bg-primary text-primary-foreground;
   @apply transition-all duration-200;
@@ -500,7 +500,7 @@
 
 /* Select trigger enhancements */
 .select-premium {
-  @apply h-12 rounded-xl border-border/50 bg-muted/30;
+  @apply h-12 rounded-xl border-border/50 bg-muted/30 cursor-pointer;
   @apply transition-all duration-200;
   @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
 }
@@ -700,7 +700,7 @@
 
 /* Interactive element base - adds consistent interaction feel */
 .interactive {
-  @apply transition-all duration-200;
+  @apply transition-all duration-200 cursor-pointer;
   @apply hover:brightness-105 active:scale-[0.98] active:brightness-95;
 }
 

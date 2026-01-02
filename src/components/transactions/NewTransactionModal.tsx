@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, RefreshCw, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
@@ -24,6 +24,7 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
   const { currency: globalCurrency } = useCurrency();
   const modalRef = useRef<HTMLDivElement>(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const initialCurrencySynced = useRef(false);
 
   // Form state
@@ -36,6 +37,12 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
   const [toAccountId, setToAccountId] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Custom dropdown open states
+  const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [isFromAccountOpen, setIsFromAccountOpen] = useState(false);
+  const [isToAccountOpen, setIsToAccountOpen] = useState(false);
 
   // Loading state
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -70,10 +77,30 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
         setDate(new Date().toISOString().split('T')[0]);
         setToAccountId('');
         initialCurrencySynced.current = false;
+        // Close all dropdowns
+        setIsCurrencyOpen(false);
+        setIsAccountOpen(false);
+        setIsFromAccountOpen(false);
+        setIsToAccountOpen(false);
       }, 200);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
+
+  // Handle click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsCurrencyOpen(false);
+        setIsAccountOpen(false);
+        setIsFromAccountOpen(false);
+        setIsToAccountOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Focus amount input when modal opens
   useEffect(() => {
@@ -140,7 +167,7 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
 
       if (type === 'transfer') {
         if (!toAccountId || toAccountId === accountId) {
-          toast.error(t('validation.differentAccounts') || 'Select different accounts');
+          toast.error(t('validation.differentAccounts'));
           setLoading(false);
           return;
         }
@@ -185,12 +212,12 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xl cursor-pointer"
       onClick={handleOverlayClick}
     >
       <div
         ref={modalRef}
-        className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-lg w-full mx-4 p-6 animate-in zoom-in-95 fade-in duration-200"
+        className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-lg w-full mx-4 p-6 animate-in zoom-in-95 fade-in duration-200 cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -201,7 +228,7 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="h-5 w-5" />
             <span className="sr-only">Close</span>
@@ -217,55 +244,71 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
             <p className="text-slate-500 dark:text-slate-400 mb-4">{t('dashboard.noAccounts')}</p>
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             >
               {t('dashboard.addFirstAccount')}
             </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
-            {/* Type Selector - Pill Shape Segmented Control */}
-            <div className="flex bg-slate-100 dark:bg-slate-800 rounded-full p-1 mb-8">
+            {/* Type Selector - 2x2 Grid */}
+            <div className="grid grid-cols-2 gap-2 mb-6">
               <button
                 type="button"
                 onClick={() => setType('expense')}
                 className={cn(
-                  'flex-1 py-3 px-4 rounded-full text-sm font-medium transition-all',
+                  'flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium transition-all cursor-pointer',
                   type === 'expense'
-                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/25'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                 )}
               >
+                <ArrowDownLeft className="size-4" />
                 {t('transactions.expense')}
               </button>
               <button
                 type="button"
                 onClick={() => setType('income')}
                 className={cn(
-                  'flex-1 py-3 px-4 rounded-full text-sm font-medium transition-all',
+                  'flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium transition-all cursor-pointer',
                   type === 'income'
-                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                 )}
               >
+                <ArrowUpRight className="size-4" />
                 {t('transactions.income')}
               </button>
               <button
                 type="button"
                 onClick={() => setType('transfer')}
                 className={cn(
-                  'flex-1 py-3 px-4 rounded-full text-sm font-medium transition-all',
+                  'flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium transition-all cursor-pointer',
                   type === 'transfer'
-                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                 )}
               >
+                <ArrowLeftRight className="size-4" />
                 {t('transactions.transfer')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setType('adjustment')}
+                className={cn(
+                  'flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium transition-all cursor-pointer',
+                  type === 'adjustment'
+                    ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/25'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                )}
+              >
+                <RefreshCw className="size-4" />
+                {t('transactions.adjustment')}
               </button>
             </div>
 
             {/* Amount Section - HERO Centered */}
-            <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="flex items-center justify-center gap-3 py-8">
               <input
                 ref={amountInputRef}
                 type="text"
@@ -279,121 +322,229 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
                   }
                 }}
                 placeholder="0.00"
-                className="text-5xl font-bold text-center bg-transparent border-none focus:outline-none focus:ring-0 w-2/3 placeholder-slate-300 dark:placeholder-slate-600 text-slate-900 dark:text-white"
+                className="text-5xl font-bold text-center bg-transparent border-none focus:outline-none focus:ring-0 w-48 placeholder-slate-300 dark:placeholder-slate-600 text-slate-900 dark:text-white"
               />
-              {/* Currency pill */}
-              <select
-                value={selectedCurrency}
-                onChange={(e) => setSelectedCurrency(e.target.value as Currency)}
-                className="text-lg font-medium bg-slate-100 dark:bg-slate-800 rounded-full px-4 py-2 border-none text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-              >
-                {AVAILABLE_CURRENCIES.map((curr) => (
-                  <option key={curr} value={curr}>
-                    {curr}
-                  </option>
-                ))}
-              </select>
+              {/* Currency Dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCurrencyOpen(!isCurrencyOpen);
+                    setIsAccountOpen(false);
+                    setIsFromAccountOpen(false);
+                    setIsToAccountOpen(false);
+                  }}
+                  className="text-lg font-medium bg-slate-100 dark:bg-slate-800 rounded-full px-4 py-2 border-none text-slate-700 dark:text-slate-300 cursor-pointer flex items-center gap-2 transition-all hover:bg-slate-200 dark:hover:bg-slate-700"
+                >
+                  {selectedCurrency}
+                  <ChevronDown className={`size-4 text-slate-400 transition-transform ${isCurrencyOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isCurrencyOpen && (
+                  <div className="absolute top-[110%] right-0 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-2xl overflow-hidden p-2 min-w-[100px]">
+                    {AVAILABLE_CURRENCIES.map((curr) => (
+                      <button
+                        key={curr}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCurrency(curr);
+                          setIsCurrencyOpen(false);
+                        }}
+                        className={`w-full p-3 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
+                          selectedCurrency === curr
+                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                            : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white'
+                        }`}
+                      >
+                        {curr}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Details Grid */}
-            {type === 'transfer' ? (
-              /* Transfer: From Account / To Account */
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 h-20 flex flex-col justify-center">
-                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1">
-                    {t('transactions.fromAccount')}
-                  </label>
-                  <select
-                    value={accountId}
-                    onChange={(e) => setAccountId(e.target.value)}
-                    className="bg-transparent font-medium text-slate-900 dark:text-white border-none p-0 focus:ring-0 focus:outline-none cursor-pointer"
+            {/* Form Fields - Full Width Vertical Stack with Filled Style */}
+            <div ref={dropdownRef} className="space-y-4">
+              {/* Account Field (shown for non-transfer types) */}
+              {type !== 'transfer' && (
+                <div className="relative w-full">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAccountOpen(!isAccountOpen);
+                      setIsCurrencyOpen(false);
+                      setIsFromAccountOpen(false);
+                      setIsToAccountOpen(false);
+                    }}
+                    className="w-full bg-slate-100 dark:bg-slate-800 rounded-2xl px-4 py-4 text-left font-medium text-slate-900 dark:text-white cursor-pointer flex justify-between items-center transition-all hover:bg-slate-200 dark:hover:bg-slate-700"
                   >
-                    {accounts.map((acc) => (
-                      <option key={acc.id} value={acc.id}>
-                        {acc.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 h-20 flex flex-col justify-center">
-                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1">
-                    {t('transactions.toAccount')}
-                  </label>
-                  <select
-                    value={toAccountId}
-                    onChange={(e) => setToAccountId(e.target.value)}
-                    className="bg-transparent font-medium text-slate-900 dark:text-white border-none p-0 focus:ring-0 focus:outline-none cursor-pointer"
-                  >
-                    <option value="">{t('transactions.selectDestinationAccount')}</option>
-                    {accounts
-                      .filter((acc) => acc.id !== accountId)
-                      .map((acc) => (
-                        <option key={acc.id} value={acc.id}>
-                          {acc.name}
-                        </option>
+                    <div className="flex flex-col">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">{t('common.account')}</span>
+                      <span className="truncate">{accounts.find(acc => acc.id === accountId)?.name || t('transactions.selectAccount')}</span>
+                    </div>
+                    <ChevronDown className={`size-5 text-slate-400 transition-transform ${isAccountOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isAccountOpen && (
+                    <div className="absolute top-[110%] left-0 w-full z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-2xl overflow-hidden p-2 max-h-60 overflow-y-auto">
+                      {accounts.map((account) => (
+                        <button
+                          key={account.id}
+                          type="button"
+                          onClick={() => {
+                            setAccountId(account.id);
+                            setIsAccountOpen(false);
+                          }}
+                          className={`w-full p-3 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
+                            accountId === account.id
+                              ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                              : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white'
+                          }`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span>{account.name}</span>
+                            <span className="text-slate-500 text-xs">{account.balance?.toLocaleString() || '0'} {account.currency}</span>
+                          </div>
+                        </button>
                       ))}
-                  </select>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ) : (
-              /* Expense/Income: Date + Account + Category placeholder */
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 h-20 flex flex-col justify-center">
-                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+              )}
+
+              {/* Transfer: From Account - Custom Dropdown */}
+              {type === 'transfer' && (
+                <div className="relative w-full">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsFromAccountOpen(!isFromAccountOpen);
+                      setIsCurrencyOpen(false);
+                      setIsAccountOpen(false);
+                      setIsToAccountOpen(false);
+                    }}
+                    className="w-full bg-slate-100 dark:bg-slate-800 rounded-2xl px-4 py-4 text-left font-medium text-slate-900 dark:text-white cursor-pointer flex justify-between items-center transition-all hover:bg-slate-200 dark:hover:bg-slate-700"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">{t('transactions.fromAccount')}</span>
+                      <span className="truncate">{accounts.find(acc => acc.id === accountId)?.name || t('transactions.selectAccount')}</span>
+                    </div>
+                    <ChevronDown className={`size-5 text-slate-400 transition-transform ${isFromAccountOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isFromAccountOpen && (
+                    <div className="absolute top-[110%] left-0 w-full z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-2xl overflow-hidden p-2 max-h-60 overflow-y-auto">
+                      {accounts.map((account) => (
+                        <button
+                          key={account.id}
+                          type="button"
+                          onClick={() => {
+                            setAccountId(account.id);
+                            setIsFromAccountOpen(false);
+                          }}
+                          className={`w-full p-3 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
+                            accountId === account.id
+                              ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                              : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white'
+                          }`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span>{account.name}</span>
+                            <span className="text-slate-500 text-xs">{account.balance?.toLocaleString() || '0'} {account.currency}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Transfer: To Account - Custom Dropdown */}
+              {type === 'transfer' && (
+                <div className="relative w-full">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsToAccountOpen(!isToAccountOpen);
+                      setIsCurrencyOpen(false);
+                      setIsAccountOpen(false);
+                      setIsFromAccountOpen(false);
+                    }}
+                    className="w-full bg-slate-100 dark:bg-slate-800 rounded-2xl px-4 py-4 text-left font-medium text-slate-900 dark:text-white cursor-pointer flex justify-between items-center transition-all hover:bg-slate-200 dark:hover:bg-slate-700"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">{t('transactions.toAccount')}</span>
+                      <span className="truncate">{accounts.find(acc => acc.id === toAccountId)?.name || t('transactions.selectDestinationAccount')}</span>
+                    </div>
+                    <ChevronDown className={`size-5 text-slate-400 transition-transform ${isToAccountOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isToAccountOpen && (
+                    <div className="absolute top-[110%] left-0 w-full z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-2xl overflow-hidden p-2 max-h-60 overflow-y-auto">
+                      {accounts
+                        .filter((acc) => acc.id !== accountId)
+                        .map((account) => (
+                          <button
+                            key={account.id}
+                            type="button"
+                            onClick={() => {
+                              setToAccountId(account.id);
+                              setIsToAccountOpen(false);
+                            }}
+                            className={`w-full p-3 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
+                              toAccountId === account.id
+                                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <span>{account.name}</span>
+                              <span className="text-slate-500 text-xs">{account.balance?.toLocaleString() || '0'} {account.currency}</span>
+                            </div>
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Date Field - Filled Style (hidden for adjustments) */}
+              {type !== 'adjustment' && (
+                <div className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl h-14 px-4 flex flex-col justify-center focus-within:ring-2 focus-within:ring-emerald-500 transition-shadow">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
                     {t('common.date')}
-                  </label>
+                  </span>
                   <input
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="bg-transparent font-medium text-slate-900 dark:text-white border-none p-0 focus:ring-0 focus:outline-none cursor-pointer"
+                    className="w-full bg-transparent font-medium text-slate-900 dark:text-white border-none p-0 focus:ring-0 focus:outline-none cursor-pointer"
                   />
                 </div>
+              )}
 
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 h-20 flex flex-col justify-center">
-                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1">
-                    {t('common.account')}
-                  </label>
-                  <select
-                    value={accountId}
-                    onChange={(e) => setAccountId(e.target.value)}
-                    className="bg-transparent font-medium text-slate-900 dark:text-white border-none p-0 focus:ring-0 focus:outline-none cursor-pointer"
-                  >
-                    {accounts.map((acc) => (
-                      <option key={acc.id} value={acc.id}>
-                        {acc.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {/* Note/Description Field - Filled Style */}
+              <div className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl h-14 px-4 flex flex-col justify-center focus-within:ring-2 focus-within:ring-emerald-500 transition-shadow">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  {t('transactions.note')}
+                </span>
+                <input
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder={t('transactions.notePlaceholder')}
+                  className="w-full bg-transparent font-medium text-slate-900 dark:text-white border-none p-0 focus:ring-0 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 truncate"
+                />
               </div>
-            )}
-
-            {/* Description Input */}
-            <div className="mb-6">
-              <input
-                type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={t('transactions.descriptionPlaceholder') || 'Add a note (optional)'}
-                className="w-full bg-slate-50 dark:bg-slate-800 rounded-2xl px-4 py-4 border-none focus:ring-2 focus:ring-emerald-500 focus:outline-none placeholder-slate-400 text-slate-900 dark:text-white"
-              />
             </div>
 
             {/* Save Button */}
             <button
               type="submit"
               disabled={loading || !isValid}
-              className="w-full h-14 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-medium text-lg shadow-lg shadow-emerald-500/20 transition-all"
+              className="w-full h-14 mt-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold text-lg shadow-lg shadow-emerald-500/25 transition-all cursor-pointer"
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  {t('common.saving')}
-                </span>
+                <Loader2 className="animate-spin mx-auto size-6" />
               ) : (
-                t('transactions.addTransaction')
+                t('transactions.saveTransaction')
               )}
             </button>
           </form>

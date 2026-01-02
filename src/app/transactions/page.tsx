@@ -230,7 +230,7 @@ export default function TransactionsPage() {
       {/* Floating Action Button */}
       <button
         onClick={() => setIsModalOpen(true)}
-        className="fixed bottom-24 right-6 z-40 size-14 bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-full shadow-lg shadow-emerald-600/30 flex items-center justify-center text-white transition-all duration-200"
+        className="fixed bottom-24 right-6 z-40 size-14 bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-full shadow-lg shadow-emerald-600/30 flex items-center justify-center text-white transition-all duration-200 cursor-pointer"
         aria-label="Add new transaction"
       >
         <Plus className="size-7" />

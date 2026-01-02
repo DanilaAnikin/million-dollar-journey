@@ -34,7 +34,7 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-200',
+                'flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-200 cursor-pointer',
                 isActive
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-foreground active:text-foreground'
