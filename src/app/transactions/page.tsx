@@ -64,15 +64,11 @@ export default function TransactionsPage() {
 
   async function loadData() {
     try {
-      console.log('TransactionsPage: Loading...');
       const [txData, accData] = await Promise.all([
         getTransactions(),
         getAccounts(),
       ]);
 
-      console.log('TransactionsPage: Received', txData.length, 'transactions');
-      console.log('TransactionsPage: Data sample', txData[0]);
-      console.log('TransactionsPage: Loaded', accData.length, 'accounts');
       setTransactions(txData);
       setAccounts(accData as Account[]);
     } catch (error) {

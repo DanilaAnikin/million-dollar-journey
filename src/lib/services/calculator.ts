@@ -139,25 +139,10 @@ export function calculateFutureValueOfPayments(
 export function getTimeRemaining(targetDate: Date = TARGET_DATE): { months: number; years: number } {
   const now = new Date();
 
-  console.log('getTimeRemaining: Input:', {
-    targetDate,
-    targetDateType: typeof targetDate,
-    isDate: targetDate instanceof Date,
-    targetDateString: targetDate.toString(),
-    now: now.toString(),
-  });
-
   const diffMs = targetDate.getTime() - now.getTime();
   const diffDays = diffMs / (1000 * 60 * 60 * 24);
   const years = diffDays / 365.25;
   const months = years * 12;
-
-  console.log('getTimeRemaining: Calculation:', {
-    diffMs,
-    diffDays,
-    years,
-    months,
-  });
 
   return {
     months: Math.max(0, Math.floor(months)),
@@ -185,20 +170,7 @@ export async function calculateMonthlyContribution(
   defaultInvestmentRate: number = DEFAULT_INVESTMENT_INTEREST_RATE,
   rates?: import('./currency').ExchangeRates
 ): Promise<CalculationResult> {
-  console.log('Calculator: Received parameters:', {
-    targetAmount,
-    targetDate,
-    targetDateType: typeof targetDate,
-    targetDateISO: targetDate instanceof Date ? targetDate.toISOString() : String(targetDate),
-  });
-
   const { months: monthsRemaining, years: yearsRemaining } = getTimeRemaining(targetDate);
-
-  console.log('Calculator: Time remaining calculated:', {
-    monthsRemaining,
-    yearsRemaining,
-    targetDate: targetDate instanceof Date ? targetDate.toISOString() : String(targetDate),
-  });
 
   // Edge case: target date has passed
   if (yearsRemaining <= 0) {

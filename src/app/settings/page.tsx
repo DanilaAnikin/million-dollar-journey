@@ -64,26 +64,21 @@ export default function SettingsPage() {
 
   // Sync state when profile loads from database
   useEffect(() => {
-    console.log('Settings: Profile changed, checking target_date:', profile?.target_date);
     if (profile?.target_date) {
       const formatted = toInputDate(profile.target_date);
-      console.log('Settings: Setting targetDate to:', formatted);
       setTargetDate(formatted);
     }
     if (profile?.target_amount_usd !== undefined) {
-      console.log('Settings: Setting targetAmount to:', profile.target_amount_usd);
       setTargetAmount(profile.target_amount_usd);
     }
   }, [profile]); // Dependency on entire profile object, not just specific properties
 
   async function loadProfile() {
     try {
-      console.log('Settings: Loading profile...');
       const supabase = createClient();
 
       // Use getUser() to fetch the authenticated user from the session
       const { data: userData, error: userError } = await supabase.auth.getUser();
-      console.log('Settings: User fetch result:', { userId: userData?.user?.id, error: userError });
 
       if (userError) {
         console.error('Settings: Error fetching user:', userError);
@@ -97,23 +92,13 @@ export default function SettingsPage() {
         return;
       }
 
-      console.log('Settings: User authenticated:', userData.user.id);
-
       const { data, error: queryError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userData.user.id)
         .single();
 
-      console.log('Settings: Raw profile data from DB:', data);
-      console.log('Settings: Query error (if any):', queryError);
-      console.log('Settings: target_date value:', data?.target_date);
-      console.log('Settings: target_date type:', typeof data?.target_date);
-      console.log('Settings: target_amount_usd value:', data?.target_amount_usd);
-      console.log('Settings: All profile fields:', Object.keys(data || {}));
-
       if (data) {
-        console.log('Settings: Setting profile state with:', data);
         setProfile(data);
         // targetAmount and targetDate are synced via useEffect when profile changes
       } else if (queryError) {
@@ -129,20 +114,15 @@ export default function SettingsPage() {
   }
 
   async function handleSaveProfile(e?: React.MouseEvent<HTMLButtonElement>) {
-    console.log('Settings: handleSaveProfile called');
-
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
 
-    console.log('Settings: Starting save...');
     setSaving(true);
     setSaved(false);
 
     try {
-      console.log('Settings: Saving profile with', { targetAmount, targetDate });
-
       // Ensure targetDate is properly formatted as YYYY-MM-DD string
       const formattedDate = targetDate instanceof Date
         ? targetDate.toISOString().split('T')[0]
@@ -153,8 +133,6 @@ export default function SettingsPage() {
         targetAmountUsd: targetAmount,
         targetDate: formattedDate,
       });
-
-      console.log('Settings: Save response', result);
 
       if (result.error) {
         toast.error(result.error);
@@ -178,8 +156,6 @@ export default function SettingsPage() {
 
   async function handleExportData() {
     try {
-      console.log('Export: Starting data export using server action');
-
       // Use server action to fetch data (handles auth properly)
       const result = await exportUserData();
 
@@ -187,8 +163,6 @@ export default function SettingsPage() {
         toast.error(result.error || t('settings.exportError') || 'Export failed');
         return;
       }
-
-      console.log('Export: Successfully fetched data');
 
       const exportData = {
         exportDate: new Date().toISOString(),
@@ -317,13 +291,11 @@ export default function SettingsPage() {
                   type="date"
                   value={targetDate}
                   onChange={(e) => {
-                    console.log('Settings: Date input changed to:', e.target.value);
                     setTargetDate(e.target.value);
                   }}
                   className="input-premium h-12 rounded-xl pl-11"
                 />
               </div>
-              {console.log('Settings: Rendering date input with value:', targetDate)}
             </div>
 
             {/* Save Button */}

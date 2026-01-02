@@ -30,8 +30,6 @@ export interface UpdateAccountInput {
 }
 
 export async function createAccount(input: CreateAccountInput): Promise<{ data: Account | null; error: string | null }> {
-  console.log('=== createAccount START ===');
-
   const supabase = await createClient();
 
   // Try getUser first (recommended, verifies with DB)
@@ -40,25 +38,17 @@ export async function createAccount(input: CreateAccountInput): Promise<{ data: 
 
   if (user) {
     userId = user.id;
-    console.log('Auth via getUser:', userId);
   } else {
     // Fallback to getSession (JWT only, no DB verification)
-    console.log('getUser failed:', userError?.message, '- trying getSession...');
     const { data: { session } } = await supabase.auth.getSession();
     userId = session?.user?.id;
-
-    if (userId) {
-      console.log('Auth via getSession fallback:', userId);
-    }
   }
 
   // Final check
   if (!userId) {
-    console.error('=== AUTH FAILED - No user from getUser or getSession ===');
+    console.error('createAccount: AUTH FAILED - No user from getUser or getSession');
     return { data: null, error: 'You must be logged in' };
   }
-
-  console.log('=== AUTH SUCCESS ===', userId);
 
   // Continue with account creation using userId
   const { data, error } = await supabase
@@ -85,36 +75,25 @@ export async function createAccount(input: CreateAccountInput): Promise<{ data: 
 
   revalidatePath('/');
   revalidatePath('/accounts');
-  console.log('=== createAccount SUCCESS ===');
   return { data, error: null };
 }
 
 export async function updateAccount(input: UpdateAccountInput): Promise<{ data: Account | null; error: string | null }> {
-  console.log('=== updateAccount START ===');
-
   const supabase = await createClient();
 
   // Try getUser first (recommended, verifies with DB)
   let userId = (await supabase.auth.getUser()).data.user?.id;
-  if (userId) {
-    console.log('Auth via getUser:', userId);
-  } else {
+  if (!userId) {
     // Fallback to getSession (JWT only, no DB verification)
-    console.log('getUser failed - trying getSession...');
     const { data: { session } } = await supabase.auth.getSession();
     userId = session?.user?.id;
-    if (userId) {
-      console.log('Auth via getSession fallback:', userId);
-    }
   }
 
   // Final check
   if (!userId) {
-    console.error('=== AUTH FAILED - No user from getUser or getSession ===');
+    console.error('updateAccount: AUTH FAILED - No user from getUser or getSession');
     return { data: null, error: 'You must be logged in' };
   }
-
-  console.log('=== AUTH SUCCESS ===', userId);
 
   const updates: Record<string, unknown> = {};
 
@@ -145,31 +124,21 @@ export async function updateAccount(input: UpdateAccountInput): Promise<{ data: 
 }
 
 export async function deleteAccount(accountId: string): Promise<{ success: boolean; error: string | null }> {
-  console.log('=== deleteAccount START ===');
-
   const supabase = await createClient();
 
   // Try getUser first (recommended, verifies with DB)
   let userId = (await supabase.auth.getUser()).data.user?.id;
-  if (userId) {
-    console.log('Auth via getUser:', userId);
-  } else {
+  if (!userId) {
     // Fallback to getSession (JWT only, no DB verification)
-    console.log('getUser failed - trying getSession...');
     const { data: { session } } = await supabase.auth.getSession();
     userId = session?.user?.id;
-    if (userId) {
-      console.log('Auth via getSession fallback:', userId);
-    }
   }
 
   // Final check
   if (!userId) {
-    console.error('=== AUTH FAILED - No user from getUser or getSession ===');
+    console.error('deleteAccount: AUTH FAILED - No user from getUser or getSession');
     return { success: false, error: 'You must be logged in' };
   }
-
-  console.log('=== AUTH SUCCESS ===', userId);
 
   const { error } = await supabase
     .from('accounts')
@@ -200,27 +169,19 @@ export async function getAccounts(includeInactive: boolean = false): Promise<{
     };
   };
 }> {
-  console.log('=== getAccounts START ===');
-
   const supabase = await createClient();
 
   // Try getUser first (recommended, verifies with DB)
   let userId = (await supabase.auth.getUser()).data.user?.id;
-  if (userId) {
-    console.log('Auth via getUser:', userId);
-  } else {
+  if (!userId) {
     // Fallback to getSession (JWT only, no DB verification)
-    console.log('getUser failed - trying getSession...');
     const { data: { session } } = await supabase.auth.getSession();
     userId = session?.user?.id;
-    if (userId) {
-      console.log('Auth via getSession fallback:', userId);
-    }
   }
 
   // Final check
   if (!userId) {
-    console.error('=== AUTH FAILED - No user from getUser or getSession ===');
+    console.error('getAccounts: AUTH FAILED - No user from getUser or getSession');
     return {
       accounts: [],
       categories: [],
@@ -236,8 +197,6 @@ export async function getAccounts(includeInactive: boolean = false): Promise<{
       }
     };
   }
-
-  console.log('=== AUTH SUCCESS ===', userId);
 
   let accountsQuery = supabase
     .from('accounts')
@@ -278,7 +237,6 @@ export async function getAccounts(includeInactive: boolean = false): Promise<{
 
   // Calculate totals using live rates (same as dashboard)
   const rates = await getLiveRates();
-  console.log('getAccounts: Using rates', { CZK: rates.CZK, EUR: rates.EUR });
 
   let totalUSD = 0;
   let assetsUSD = 0;
@@ -296,8 +254,6 @@ export async function getAccounts(includeInactive: boolean = false): Promise<{
       assetsUSD += amountInUSD;
     }
   }
-
-  console.log('getAccounts: Calculated totals', { totalUSD, assetsUSD, liabilitiesUSD });
 
   return {
     accounts,
