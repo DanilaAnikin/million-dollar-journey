@@ -313,6 +313,10 @@ export const translations = {
     en: 'No categories available',
     cs: 'Žádné kategorie',
   },
+  'accounts.selectCategory': {
+    en: 'Select category',
+    cs: 'Vyberte kategorii',
+  },
   'accounts.noCategory': {
     en: 'No category',
     cs: 'Bez kategorie',

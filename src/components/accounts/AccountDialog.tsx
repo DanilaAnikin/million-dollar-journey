@@ -24,15 +24,15 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { getCategories } from '@/app/actions/settings';
-import type { Account, AccountCategory, Currency } from '@/types/database';
+import type { Account, AccountCategory } from '@/types/database';
 
 const accountSchema = z.object({
   name: z.string().min(1),
   categoryId: z.string().optional(),
   currency: z.enum(['CZK', 'USD', 'EUR']),
-  balance: z.coerce.number().min(0),
+  balance: z.number().min(0),
   isInvestment: z.boolean(),
-  interestRatePa: z.coerce.number().min(0).max(100),
+  interestRatePa: z.number().min(0).max(100),
   institution: z.string().optional(),
 });
 
@@ -105,7 +105,7 @@ export function AccountDialog({
       reset({
         name: account.name,
         categoryId: account.category_id || '',
-        currency: account.currency as Currency,
+        currency: account.currency as 'CZK' | 'USD' | 'EUR',
         balance: account.balance,
         isInvestment: account.is_investment,
         interestRatePa: account.interest_rate_pa,
