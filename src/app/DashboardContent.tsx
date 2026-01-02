@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabase/client';
 import { TARGET_AMOUNT_USD, TARGET_DATE } from '@/lib/constants';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useCurrency } from '@/lib/contexts/CurrencyContext';
-import type { Account, Transaction } from '@/types/database';
+import type { Account, Transaction, Profile } from '@/types/database';
 
 export function DashboardContent() {
   const { t } = useLanguage();
@@ -66,7 +66,7 @@ export function DashboardContent() {
       ]);
 
       const fetchedAccounts = accountsRes.data || [];
-      const profile = profileRes.data;
+      const profile = profileRes.data as Profile | null;
 
       setAccounts(fetchedAccounts);
       setTransactions(transactionsRes.data || []);

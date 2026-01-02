@@ -103,8 +103,9 @@ export function CurrencyProvider({
       const supabase = createClient();
       const { data: userData } = await supabase.auth.getUser();
       if (userData?.user?.id) {
-        await supabase
-          .from('profiles')
+        const profilesTable = supabase.from('profiles');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (profilesTable as any)
           .update({ preferred_currency: newCurrency })
           .eq('id', userData.user.id);
       }
