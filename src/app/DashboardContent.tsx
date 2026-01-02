@@ -43,7 +43,6 @@ export function DashboardContent() {
 
       // Fetch live rates first (same as getAccounts does)
       const liveRates = await getLiveRates();
-      console.log('DashboardContent: Using live rates from API', { CZK: liveRates.CZK, EUR: liveRates.EUR });
 
       // Fetch accounts, transactions, and profile in parallel
       const [accountsRes, transactionsRes, profileRes] = await Promise.all([
@@ -83,19 +82,6 @@ export function DashboardContent() {
           setTargetAmount(customTargetAmount);
         }
 
-        console.log('=== DASHBOARD CALCULATION START ===');
-        console.log('Profile data:', {
-          target_amount_usd: profile?.target_amount_usd,
-          target_date: profile?.target_date,
-          target_date_type: typeof profile?.target_date,
-        });
-        console.log('Using target settings:', {
-          targetAmount: customTargetAmount || TARGET_AMOUNT_USD,
-          targetDate: customTargetDate || TARGET_DATE,
-          targetDateISO: (customTargetDate || TARGET_DATE).toISOString(),
-          source: customTargetAmount && customTargetDate ? 'user profile' : 'defaults'
-        });
-
         const calc = await calculateMonthlyContribution(
           fetchedAccounts,
           customTargetAmount,
@@ -103,15 +89,6 @@ export function DashboardContent() {
           undefined,
           liveRates
         );
-        console.log('Calculation results:', {
-          currentNetWorthUSD: calc.currentNetWorthUSD,
-          monthlyContributionNeeded: calc.monthlyContributionNeeded,
-          monthsRemaining: calc.monthsRemaining,
-          yearsRemaining: calc.yearsRemaining,
-          targetDate: calc.targetDate,
-          targetAmount: calc.targetAmount,
-        });
-        console.log('=== DASHBOARD CALCULATION END ===');
         setCalculation(calc);
       }
     } catch (error) {

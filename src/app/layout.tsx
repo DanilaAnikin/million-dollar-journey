@@ -28,8 +28,6 @@ export default async function RootLayout({
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    console.log('RootLayout: Auth check -', user?.id ? 'authenticated' : 'not authenticated', authError?.message || '');
-
     if (user) {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -37,20 +35,13 @@ export default async function RootLayout({
         .eq('id', user.id)
         .single();
 
-      console.log('RootLayout: Profile fetch -', profile, profileError?.message || '');
-
       if (profile?.preferred_currency) {
         initialCurrency = profile.preferred_currency as Currency;
-      } else if (profileError?.code === 'PGRST116') {
-        // No profile exists - this is OK for new users
-        console.log('RootLayout: No profile found, using default CZK');
       }
     }
   } catch (error) {
     console.error('RootLayout: Error fetching currency preference:', error);
   }
-
-  console.log('RootLayout: Using currency:', initialCurrency);
 
   return (
     <html lang="en" suppressHydrationWarning>

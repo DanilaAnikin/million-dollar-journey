@@ -34,8 +34,6 @@ export function CurrencyProvider({
   children: ReactNode;
   initialCurrency?: Currency;
 }) {
-  console.log('CurrencyProvider: Initializing with', initialCurrency);
-
   const [currency, setCurrencyState] = useState<Currency>(initialCurrency);
   const [rates, setRates] = useState<ExchangeRates | null>(null);
 
@@ -44,14 +42,12 @@ export function CurrencyProvider({
     async function fetchRates() {
       try {
         const fetchedRates = await getLatestRates();
-        console.log('CurrencyContext: Fetched rates', fetchedRates);
         const rates = {
           USD: 1,
           CZK: fetchedRates.CZK || DEFAULT_RATES.CZK,
           EUR: fetchedRates.EUR || DEFAULT_RATES.EUR,
         };
         setRates(rates);
-        console.log('CurrencyContext: Rates received', { USD: rates.USD, CZK: rates.CZK, EUR: rates.EUR });
       } catch (error) {
         console.error('CurrencyContext: Failed to fetch rates, using defaults', error);
         setRates(DEFAULT_RATES);
@@ -85,7 +81,6 @@ export function CurrencyProvider({
   }, []);
 
   const setCurrency = async (newCurrency: Currency) => {
-    console.log('CurrencyProvider: Changing currency from', currency, 'to', newCurrency);
     setCurrencyState(newCurrency);
 
     // Persist to database in the background

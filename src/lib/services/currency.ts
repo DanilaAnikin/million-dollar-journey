@@ -34,11 +34,8 @@ interface CachedData {
 export async function getLatestRates(): Promise<ExchangeRates> {
   // Server-side: No localStorage, return fallbacks immediately
   if (typeof window === 'undefined') {
-    console.log('🔧 SERVICE: SSR detected - using fallback rates');
     return { ...FALLBACK_RATES };
   }
-
-  console.log('🔧 SERVICE: Using Key:', STORAGE_KEY);
 
   // Check localStorage cache
   try {
@@ -48,21 +45,14 @@ export async function getLatestRates(): Promise<ExchangeRates> {
       const age = Date.now() - data.timestamp;
 
       if (age < CACHE_DURATION_MS) {
-        console.log('🔧 SERVICE: Cache HIT (age:', Math.round(age / 1000 / 60), 'min)');
-        console.log('🔧 SERVICE: Cached rates:', { USD: data.rates.USD, CZK: data.rates.CZK, EUR: data.rates.EUR });
         return data.rates;
-      } else {
-        console.log('🔧 SERVICE: Cache EXPIRED');
       }
-    } else {
-      console.log('🔧 SERVICE: Cache MISS - No data for key:', STORAGE_KEY);
     }
   } catch (e) {
-    console.error('🔧 SERVICE: Cache read error:', e);
+    console.error('Currency service: Cache read error:', e);
   }
 
   // Fetch from API
-  console.log('🔧 SERVICE: Fetching from Frankfurter API...');
   try {
     const response = await fetch(API_URL);
     if (!response.ok) {
@@ -72,16 +62,13 @@ export async function getLatestRates(): Promise<ExchangeRates> {
     const data = await response.json();
     const rates: ExchangeRates = { USD: 1, ...data.rates };
 
-    console.log('🔧 SERVICE: API SUCCESS:', { USD: rates.USD, CZK: rates.CZK, EUR: rates.EUR });
-
     // Save to cache (we're always on client-side here due to early SSR return)
     const cacheData: CachedData = { rates, timestamp: Date.now() };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cacheData));
-    console.log('🔧 SERVICE: Saved to cache');
 
     return rates;
   } catch (error) {
-    console.error('🔧 SERVICE: API FAILED, using fallbacks:', error);
+    console.error('Currency service: API failed, using fallbacks:', error);
     return { ...FALLBACK_RATES };
   }
 }
@@ -91,8 +78,6 @@ export async function getLatestRates(): Promise<ExchangeRates> {
  * Waits for the API response instead of using cached/fallback values
  */
 export async function getLiveRates(): Promise<ExchangeRates> {
-  console.log('🔧 SERVICE: getLiveRates - Fetching live data from API...');
-
   try {
     const res = await fetch('https://api.frankfurter.app/latest?from=USD', {
       next: { revalidate: 3600 } // Cache for 1 hour on server
@@ -115,10 +100,9 @@ export async function getLiveRates(): Promise<ExchangeRates> {
       AUD: data.rates.AUD,
     };
 
-    console.log('🔧 SERVICE: getLiveRates - SUCCESS:', { CZK: rates.CZK, EUR: rates.EUR });
     return rates;
   } catch (error) {
-    console.error('🔧 SERVICE: getLiveRates - API FAILED, using fallback:', error);
+    console.error('Currency service: getLiveRates API failed, using fallback:', error);
     return { ...FALLBACK_RATES };
   }
 }
