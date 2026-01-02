@@ -16,8 +16,8 @@ interface NewTransactionModalProps {
   onSuccess?: () => void;
 }
 
-// Limited currencies as per spec
-const AVAILABLE_CURRENCIES: Currency[] = ['CZK', 'USD', 'EUR'];
+// Available currencies
+const AVAILABLE_CURRENCIES: Currency[] = ['USD', 'EUR', 'GBP', 'CZK', 'JPY', 'CHF', 'CAD', 'AUD'];
 
 export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransactionModalProps) {
   const { t } = useLanguage();

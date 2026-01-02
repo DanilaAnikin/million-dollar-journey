@@ -13,8 +13,13 @@ interface AmountInputProps {
 
 const currencySymbols: Record<Currency, string> = {
   USD: '$',
-  CZK: 'Kč',
   EUR: '€',
+  GBP: '£',
+  CZK: 'Kč',
+  JPY: '¥',
+  CHF: 'Fr',
+  CAD: 'C$',
+  AUD: 'A$',
 };
 
 export function AmountInput({ value, onChange, currency, isNegative = false }: AmountInputProps) {

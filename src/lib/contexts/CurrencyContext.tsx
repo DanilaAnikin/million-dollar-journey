@@ -7,8 +7,13 @@ import type { Currency } from '@/types/database';
 
 interface ExchangeRates {
   USD: number;
-  CZK: number;
   EUR: number;
+  GBP: number;
+  CZK: number;
+  JPY: number;
+  CHF: number;
+  CAD: number;
+  AUD: number;
 }
 
 interface CurrencyContextType {
@@ -23,8 +28,13 @@ const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined
 
 const DEFAULT_RATES: ExchangeRates = {
   USD: 1,
-  CZK: 23.5,  // Approximate fallback
   EUR: 0.92,
+  GBP: 0.79,
+  CZK: 23.5,
+  JPY: 149.5,
+  CHF: 0.88,
+  CAD: 1.36,
+  AUD: 1.53,
 };
 
 export function CurrencyProvider({
@@ -42,10 +52,15 @@ export function CurrencyProvider({
     async function fetchRates() {
       try {
         const fetchedRates = await getLatestRates();
-        const rates = {
+        const rates: ExchangeRates = {
           USD: 1,
-          CZK: fetchedRates.CZK || DEFAULT_RATES.CZK,
           EUR: fetchedRates.EUR || DEFAULT_RATES.EUR,
+          GBP: fetchedRates.GBP || DEFAULT_RATES.GBP,
+          CZK: fetchedRates.CZK || DEFAULT_RATES.CZK,
+          JPY: fetchedRates.JPY || DEFAULT_RATES.JPY,
+          CHF: fetchedRates.CHF || DEFAULT_RATES.CHF,
+          CAD: fetchedRates.CAD || DEFAULT_RATES.CAD,
+          AUD: fetchedRates.AUD || DEFAULT_RATES.AUD,
         };
         setRates(rates);
       } catch (error) {

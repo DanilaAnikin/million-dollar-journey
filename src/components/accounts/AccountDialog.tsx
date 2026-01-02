@@ -29,7 +29,7 @@ import type { Account, AccountCategory } from '@/types/database';
 const accountSchema = z.object({
   name: z.string().min(1),
   categoryId: z.string().optional(),
-  currency: z.enum(['CZK', 'USD', 'EUR']),
+  currency: z.enum(['USD', 'EUR', 'GBP', 'CZK', 'JPY', 'CHF', 'CAD', 'AUD']),
   balance: z.number().min(0),
   isInvestment: z.boolean(),
   interestRatePa: z.number().min(0).max(100),
@@ -105,7 +105,7 @@ export function AccountDialog({
       reset({
         name: account.name,
         categoryId: account.category_id || '',
-        currency: account.currency as 'CZK' | 'USD' | 'EUR',
+        currency: account.currency,
         balance: account.balance,
         isInvestment: account.is_investment,
         interestRatePa: account.interest_rate_pa,
@@ -213,9 +213,14 @@ export function AccountDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="CZK">CZK (Kc)</SelectItem>
                     <SelectItem value="USD">USD ($)</SelectItem>
-                    <SelectItem value="EUR">EUR (E)</SelectItem>
+                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                    <SelectItem value="GBP">GBP (£)</SelectItem>
+                    <SelectItem value="CZK">CZK (Kč)</SelectItem>
+                    <SelectItem value="JPY">JPY (¥)</SelectItem>
+                    <SelectItem value="CHF">CHF (Fr)</SelectItem>
+                    <SelectItem value="CAD">CAD (C$)</SelectItem>
+                    <SelectItem value="AUD">AUD (A$)</SelectItem>
                   </SelectContent>
                 </Select>
               )}

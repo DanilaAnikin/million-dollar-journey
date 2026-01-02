@@ -20,7 +20,7 @@ export default function AccountsPage() {
     totalUSD: number;
     assetsUSD: number;
     liabilitiesUSD: number;
-    rates: { USD: number; CZK: number; EUR: number };
+    rates: Record<Currency, number>;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -145,11 +145,11 @@ export default function AccountsPage() {
 
   // Use server totals with server rates for consistency
   const displayAssets = serverTotals
-    ? serverTotals.assetsUSD * serverTotals.rates[globalCurrency as 'USD' | 'CZK' | 'EUR']
+    ? serverTotals.assetsUSD * serverTotals.rates[globalCurrency]
     : 0;
 
   const displayLiabilities = serverTotals
-    ? serverTotals.liabilitiesUSD * serverTotals.rates[globalCurrency as 'USD' | 'CZK' | 'EUR']
+    ? serverTotals.liabilitiesUSD * serverTotals.rates[globalCurrency]
     : 0;
 
   if (loading) {

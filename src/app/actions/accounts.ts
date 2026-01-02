@@ -162,11 +162,7 @@ export async function getAccounts(includeInactive: boolean = false): Promise<{
     totalUSD: number;
     assetsUSD: number;
     liabilitiesUSD: number;
-    rates: {
-      USD: number;
-      CZK: number;
-      EUR: number;
-    };
+    rates: Record<Currency, number>;
   };
 }> {
   const supabase = await createClient();
@@ -191,8 +187,13 @@ export async function getAccounts(includeInactive: boolean = false): Promise<{
         liabilitiesUSD: 0,
         rates: {
           USD: 1,
-          CZK: 1,
           EUR: 1,
+          GBP: 1,
+          CZK: 1,
+          JPY: 1,
+          CHF: 1,
+          CAD: 1,
+          AUD: 1,
         }
       }
     };
@@ -225,8 +226,13 @@ export async function getAccounts(includeInactive: boolean = false): Promise<{
         liabilitiesUSD: 0,
         rates: {
           USD: 1,
-          CZK: 1,
           EUR: 1,
+          GBP: 1,
+          CZK: 1,
+          JPY: 1,
+          CHF: 1,
+          CAD: 1,
+          AUD: 1,
         }
       }
     };
@@ -264,8 +270,13 @@ export async function getAccounts(includeInactive: boolean = false): Promise<{
       liabilitiesUSD,
       rates: {
         USD: 1,
-        CZK: rates.CZK,
         EUR: rates.EUR,
+        GBP: rates.GBP,
+        CZK: rates.CZK,
+        JPY: rates.JPY,
+        CHF: rates.CHF,
+        CAD: rates.CAD,
+        AUD: rates.AUD,
       }
     }
   };
