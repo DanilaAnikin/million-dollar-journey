@@ -73,10 +73,10 @@ export function Header({ title }: HeaderProps) {
         </h1>
 
         {/* Actions */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 min-w-0 flex-shrink">
           {/* Language Switcher */}
           <Select value={language} onValueChange={setLanguage}>
-            <SelectTrigger className="min-w-[60px] w-auto h-8 text-xs font-medium rounded-xl border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors">
+            <SelectTrigger className="min-w-0 w-auto max-w-[70px] sm:max-w-[100px] md:max-w-none h-8 text-xs font-medium rounded-xl border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors [&>span]:truncate [&>span]:min-w-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="min-w-[140px] rounded-xl">
@@ -87,7 +87,7 @@ export function Header({ title }: HeaderProps) {
 
           {/* Currency Switcher */}
           <Select value={currency} onValueChange={handleCurrencyChange}>
-            <SelectTrigger className="min-w-[70px] w-auto h-8 text-xs font-medium rounded-xl border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors">
+            <SelectTrigger className="min-w-0 w-auto max-w-[70px] sm:max-w-[100px] md:max-w-none h-8 text-xs font-medium rounded-xl border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors [&>span]:truncate [&>span]:min-w-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="min-w-[140px] rounded-xl">
