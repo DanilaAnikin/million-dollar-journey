@@ -1,0 +1,822 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  /* Extended radius tokens for premium look */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  /* Semantic color tokens */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-income: var(--income);
+  --color-expense: var(--expense);
+  /* Premium shadow utilities */
+  --shadow-premium: 0 10px 30px -5px rgba(0, 0, 0, 0.08);
+  --shadow-premium-hover: 0 20px 40px -5px rgba(0, 0, 0, 0.12);
+  --shadow-premium-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+/* ============================================
+   FINTECH PREMIUM DESIGN SYSTEM
+   Inspired by Revolut, Monarch, Apple Wallet
+   ============================================ */
+
+:root {
+  /* Base radius - larger for premium feel */
+  --radius: 0.875rem;
+
+  /* Sophisticated slate backgrounds (not pure white) */
+  --background: oklch(0.985 0.002 247);
+  --foreground: oklch(0.145 0.015 265);
+
+  /* Card surfaces with subtle warmth */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0.015 265);
+
+  /* Popovers */
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0.015 265);
+
+  /* Primary: Deep Indigo - sophisticated & trustworthy */
+  --primary: oklch(0.45 0.18 265);
+  --primary-foreground: oklch(0.99 0 0);
+
+  /* Secondary: Soft slate */
+  --secondary: oklch(0.96 0.005 265);
+  --secondary-foreground: oklch(0.25 0.015 265);
+
+  /* Muted: For subtle text and backgrounds */
+  --muted: oklch(0.96 0.005 265);
+  --muted-foreground: oklch(0.50 0.01 265);
+
+  /* Accent: Slight purple tint */
+  --accent: oklch(0.94 0.02 280);
+  --accent-foreground: oklch(0.25 0.015 265);
+
+  /* Destructive: Sophisticated rose */
+  --destructive: oklch(0.55 0.22 25);
+
+  /* Borders: Very subtle, barely visible */
+  --border: oklch(0.92 0.005 265);
+  --input: oklch(0.92 0.005 265);
+  --ring: oklch(0.45 0.18 265);
+
+  /* Semantic colors for financial data */
+  --success: oklch(0.55 0.18 155);
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.70 0.15 75);
+  --warning-foreground: oklch(0.25 0.05 75);
+  --income: oklch(0.55 0.18 155);
+  --expense: oklch(0.55 0.22 25);
+
+  /* Chart colors - harmonious palette */
+  --chart-1: oklch(0.45 0.18 265);
+  --chart-2: oklch(0.55 0.18 155);
+  --chart-3: oklch(0.65 0.15 45);
+  --chart-4: oklch(0.60 0.20 300);
+  --chart-5: oklch(0.55 0.22 25);
+
+  /* Sidebar */
+  --sidebar: oklch(0.99 0 0);
+  --sidebar-foreground: oklch(0.145 0.015 265);
+  --sidebar-primary: oklch(0.45 0.18 265);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.96 0.005 265);
+  --sidebar-accent-foreground: oklch(0.25 0.015 265);
+  --sidebar-border: oklch(0.92 0.005 265);
+  --sidebar-ring: oklch(0.45 0.18 265);
+}
+
+.dark {
+  /* Rich dark backgrounds - not pure black */
+  --background: oklch(0.13 0.015 265);
+  --foreground: oklch(0.96 0.005 265);
+
+  /* Card surfaces - elevated from background */
+  --card: oklch(0.18 0.015 265);
+  --card-foreground: oklch(0.96 0.005 265);
+
+  /* Popovers - slightly lighter than cards */
+  --popover: oklch(0.20 0.015 265);
+  --popover-foreground: oklch(0.96 0.005 265);
+
+  /* Primary: Brighter indigo for dark mode */
+  --primary: oklch(0.65 0.20 265);
+  --primary-foreground: oklch(0.10 0.015 265);
+
+  /* Secondary */
+  --secondary: oklch(0.22 0.015 265);
+  --secondary-foreground: oklch(0.96 0.005 265);
+
+  /* Muted */
+  --muted: oklch(0.22 0.015 265);
+  --muted-foreground: oklch(0.60 0.01 265);
+
+  /* Accent */
+  --accent: oklch(0.25 0.02 280);
+  --accent-foreground: oklch(0.96 0.005 265);
+
+  /* Destructive */
+  --destructive: oklch(0.65 0.22 20);
+
+  /* Borders - subtle glow effect */
+  --border: oklch(0.25 0.015 265);
+  --input: oklch(0.25 0.015 265);
+  --ring: oklch(0.65 0.20 265);
+
+  /* Semantic colors - brighter for dark mode */
+  --success: oklch(0.65 0.20 155);
+  --success-foreground: oklch(0.10 0 0);
+  --warning: oklch(0.75 0.15 75);
+  --warning-foreground: oklch(0.20 0.05 75);
+  --income: oklch(0.65 0.20 155);
+  --expense: oklch(0.65 0.22 20);
+
+  /* Chart colors - vibrant for dark */
+  --chart-1: oklch(0.65 0.20 265);
+  --chart-2: oklch(0.65 0.20 155);
+  --chart-3: oklch(0.75 0.15 45);
+  --chart-4: oklch(0.70 0.20 300);
+  --chart-5: oklch(0.65 0.22 20);
+
+  /* Sidebar */
+  --sidebar: oklch(0.15 0.015 265);
+  --sidebar-foreground: oklch(0.96 0.005 265);
+  --sidebar-primary: oklch(0.65 0.20 265);
+  --sidebar-primary-foreground: oklch(0.10 0.015 265);
+  --sidebar-accent: oklch(0.22 0.015 265);
+  --sidebar-accent-foreground: oklch(0.96 0.005 265);
+  --sidebar-border: oklch(0.25 0.015 265);
+  --sidebar-ring: oklch(0.65 0.20 265);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Premium typography for financial numbers */
+  .font-display {
+    font-feature-settings: "tnum" 1, "lnum" 1;
+    letter-spacing: -0.02em;
+  }
+
+  /* Smooth transitions everywhere */
+  button, a, input, select, textarea {
+    @apply transition-all duration-200;
+  }
+}
+
+/* Safe area for mobile devices with notches */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* ============================================
+   PREMIUM COMPONENT STYLES
+   ============================================ */
+
+/* Glass morphism effect for cards */
+.glass {
+  @apply backdrop-blur-xl bg-card/80;
+}
+
+.dark .glass {
+  @apply bg-card/70;
+}
+
+.glass-border {
+  @apply border border-white/10;
+}
+
+.dark .glass-border {
+  @apply border-white/5;
+}
+
+/* Premium gradient backgrounds */
+.gradient-primary {
+  background: linear-gradient(135deg, oklch(0.45 0.18 265) 0%, oklch(0.55 0.20 280) 100%);
+}
+
+.dark .gradient-primary {
+  background: linear-gradient(135deg, oklch(0.55 0.20 265) 0%, oklch(0.60 0.22 280) 100%);
+}
+
+.gradient-success {
+  background: linear-gradient(135deg, oklch(0.50 0.18 155) 0%, oklch(0.60 0.15 165) 100%);
+}
+
+.dark .gradient-success {
+  background: linear-gradient(135deg, oklch(0.55 0.20 155) 0%, oklch(0.65 0.18 165) 100%);
+}
+
+.gradient-hero {
+  background: linear-gradient(180deg, oklch(0.13 0.015 265) 0%, oklch(0.18 0.02 270) 100%);
+}
+
+.dark .gradient-hero {
+  background: linear-gradient(180deg, oklch(0.10 0.02 265) 0%, oklch(0.15 0.025 270) 100%);
+}
+
+/* Premium shadows */
+.shadow-premium {
+  box-shadow:
+    0 1px 2px oklch(0.20 0.02 265 / 0.05),
+    0 4px 8px oklch(0.20 0.02 265 / 0.05),
+    0 12px 24px oklch(0.20 0.02 265 / 0.08);
+}
+
+.dark .shadow-premium {
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.2),
+    0 4px 8px oklch(0 0 0 / 0.2),
+    0 12px 24px oklch(0 0 0 / 0.3);
+}
+
+.shadow-glow {
+  box-shadow: 0 0 20px oklch(0.45 0.18 265 / 0.3);
+}
+
+.dark .shadow-glow {
+  box-shadow: 0 0 30px oklch(0.65 0.20 265 / 0.25);
+}
+
+/* Premium card styles */
+.card-premium {
+  @apply rounded-3xl border border-border/50 bg-card;
+  box-shadow: var(--shadow-premium);
+  @apply transition-all duration-300 ease-out;
+  @apply hover:-translate-y-0.5 hover:shadow-lg;
+}
+
+.card-elevated {
+  @apply rounded-2xl border-0 bg-card shadow-lg;
+  @apply transition-all duration-300 ease-out;
+  @apply hover:-translate-y-0.5 hover:shadow-xl;
+}
+
+/* Income/Expense pills */
+.pill-income {
+  @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+  background: oklch(0.55 0.18 155 / 0.12);
+  color: oklch(0.45 0.18 155);
+}
+
+.dark .pill-income {
+  background: oklch(0.65 0.20 155 / 0.15);
+  color: oklch(0.70 0.18 155);
+}
+
+.pill-expense {
+  @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+  background: oklch(0.55 0.22 25 / 0.12);
+  color: oklch(0.50 0.22 25);
+}
+
+.dark .pill-expense {
+  background: oklch(0.65 0.22 20 / 0.15);
+  color: oklch(0.70 0.22 20);
+}
+
+/* Icon containers - squircle style */
+.icon-container {
+  @apply flex items-center justify-center rounded-2xl;
+  @apply transition-all duration-200;
+}
+
+.icon-container-sm {
+  @apply w-10 h-10 rounded-xl;
+}
+
+.icon-container-md {
+  @apply w-12 h-12 rounded-2xl;
+}
+
+.icon-container-lg {
+  @apply w-14 h-14 rounded-2xl;
+}
+
+/* Icon container color variants with dark mode support */
+.icon-container-primary {
+  @apply bg-primary/10 text-primary;
+}
+
+.dark .icon-container-primary {
+  @apply bg-primary/15;
+}
+
+.icon-container-success {
+  background: oklch(0.55 0.18 155 / 0.12);
+  color: oklch(0.45 0.18 155);
+}
+
+.dark .icon-container-success {
+  background: oklch(0.65 0.20 155 / 0.15);
+  color: oklch(0.70 0.18 155);
+}
+
+.icon-container-muted {
+  @apply bg-muted text-muted-foreground;
+}
+
+/* Premium buttons */
+.btn-premium {
+  @apply h-12 rounded-2xl font-semibold shadow-sm;
+  @apply transition-all duration-200;
+  @apply hover:shadow-md hover:brightness-105;
+  @apply active:scale-[0.98] active:brightness-95;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+}
+
+.btn-premium-lg {
+  @apply h-14 rounded-2xl font-semibold text-base shadow-sm;
+  @apply transition-all duration-200;
+  @apply hover:shadow-md hover:brightness-105;
+  @apply active:scale-[0.98] active:brightness-95;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+}
+
+/* Bottom navigation styling */
+.bottom-nav {
+  @apply fixed bottom-0 left-0 right-0 z-50;
+  @apply bg-card/95 backdrop-blur-xl;
+  @apply border-t border-border/50;
+}
+
+.dark .bottom-nav {
+  @apply bg-card/90 border-border/30;
+}
+
+/* FAB (Floating Action Button) */
+.fab {
+  @apply w-14 h-14 rounded-full shadow-lg;
+  @apply flex items-center justify-center;
+  @apply bg-primary text-primary-foreground;
+  @apply transition-all duration-200;
+  @apply hover:shadow-xl hover:scale-105;
+  @apply active:scale-95;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+}
+
+.fab-elevated {
+  @apply absolute -top-7 left-1/2 -translate-x-1/2;
+  box-shadow:
+    0 4px 14px oklch(0.45 0.18 265 / 0.35),
+    0 2px 4px oklch(0 0 0 / 0.1);
+}
+
+.dark .fab-elevated {
+  box-shadow:
+    0 4px 20px oklch(0.65 0.20 265 / 0.4),
+    0 2px 4px oklch(0 0 0 / 0.2);
+}
+
+/* Hero card gradient */
+.hero-gradient {
+  background: linear-gradient(135deg,
+    oklch(0.35 0.15 265) 0%,
+    oklch(0.40 0.18 280) 50%,
+    oklch(0.35 0.15 265) 100%
+  );
+}
+
+.dark .hero-gradient {
+  background: linear-gradient(135deg,
+    oklch(0.20 0.08 265) 0%,
+    oklch(0.25 0.10 280) 50%,
+    oklch(0.20 0.08 265) 100%
+  );
+}
+
+/* Stats card background */
+.stats-card {
+  @apply rounded-2xl p-4;
+  @apply bg-gradient-to-br from-muted/50 to-muted;
+  @apply border border-border/30;
+  @apply transition-all duration-300 ease-out;
+  @apply hover:-translate-y-0.5 hover:shadow-md;
+}
+
+.dark .stats-card {
+  @apply from-muted/30 to-muted/60;
+  @apply border-border/20;
+}
+
+/* Transaction list item */
+.transaction-item {
+  @apply flex items-center gap-4 p-4;
+  @apply transition-all duration-200;
+}
+
+.dark .transaction-item {
+  /* No hover effects - items are not clickable */
+}
+
+/* Section headers */
+.section-header {
+  @apply text-xs font-semibold uppercase tracking-wider;
+  @apply text-muted-foreground px-1 mb-2;
+}
+
+/* Empty state styling */
+.empty-state {
+  @apply flex flex-col items-center justify-center py-12 px-6 text-center;
+}
+
+.empty-state-icon {
+  @apply w-16 h-16 rounded-3xl mb-4;
+  @apply bg-muted flex items-center justify-center;
+  @apply text-muted-foreground;
+}
+
+.dark .empty-state-icon {
+  @apply bg-muted/50;
+}
+
+/* Input styling enhancements */
+.input-premium {
+  @apply h-12 rounded-xl border-border/50 bg-muted/30;
+  @apply transition-all duration-200;
+  @apply focus:border-primary focus:ring-2 focus:ring-primary/20;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  @apply placeholder:text-muted-foreground/60;
+}
+
+.dark .input-premium {
+  @apply bg-muted/20 border-border/30;
+  @apply focus:ring-primary/30;
+}
+
+/* Select trigger enhancements */
+.select-premium {
+  @apply h-12 rounded-xl border-border/50 bg-muted/30;
+  @apply transition-all duration-200;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+}
+
+.dark .select-premium {
+  @apply bg-muted/20 border-border/30;
+}
+
+/* Settings group styling (iOS-like) */
+.settings-group {
+  @apply rounded-2xl overflow-hidden bg-card border border-border/50;
+  @apply transition-shadow duration-300;
+  @apply hover:shadow-sm;
+}
+
+.dark .settings-group {
+  @apply border-border/30;
+}
+
+.settings-item {
+  @apply flex items-center justify-between px-4 py-3.5;
+  @apply border-b border-border/30 last:border-b-0;
+  @apply transition-all duration-200;
+}
+
+.dark .settings-item {
+  @apply border-border/20;
+}
+
+.settings-item-icon {
+  @apply w-8 h-8 rounded-lg flex items-center justify-center mr-3;
+}
+
+/* Account card - credit card style */
+.account-card {
+  @apply relative overflow-hidden rounded-2xl p-5;
+  @apply min-h-[140px];
+  @apply transition-all duration-300 ease-out cursor-pointer;
+  @apply hover:-translate-y-1 hover:shadow-xl;
+  background: linear-gradient(135deg,
+    oklch(0.40 0.12 265) 0%,
+    oklch(0.35 0.15 280) 100%
+  );
+}
+
+.dark .account-card {
+  background: linear-gradient(135deg,
+    oklch(0.30 0.10 265) 0%,
+    oklch(0.25 0.12 280) 100%
+  );
+}
+
+.account-card-asset {
+  background: linear-gradient(135deg,
+    oklch(0.45 0.15 155) 0%,
+    oklch(0.40 0.12 165) 100%
+  );
+}
+
+.dark .account-card-asset {
+  background: linear-gradient(135deg,
+    oklch(0.35 0.12 155) 0%,
+    oklch(0.30 0.10 165) 100%
+  );
+}
+
+.account-card-liability {
+  background: linear-gradient(135deg,
+    oklch(0.50 0.18 25) 0%,
+    oklch(0.45 0.15 15) 100%
+  );
+}
+
+.dark .account-card-liability {
+  background: linear-gradient(135deg,
+    oklch(0.40 0.15 25) 0%,
+    oklch(0.35 0.12 15) 100%
+  );
+}
+
+.account-card::before {
+  content: '';
+  @apply absolute inset-0;
+  @apply transition-opacity duration-300;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+}
+
+.dark .account-card::before {
+  opacity: 0.7;
+}
+
+.account-card:hover::before {
+  opacity: 0.8;
+}
+
+.dark .account-card:hover::before {
+  opacity: 0.5;
+}
+
+/* Filter pills */
+.filter-pill {
+  @apply px-4 py-2 rounded-full text-sm font-medium;
+  @apply bg-muted text-muted-foreground;
+  @apply hover:bg-muted/80 active:scale-95;
+  @apply transition-all duration-200 cursor-pointer;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+}
+
+.dark .filter-pill {
+  @apply bg-muted/60 hover:bg-muted/80 text-slate-400;
+}
+
+.filter-pill-active {
+  @apply bg-primary text-primary-foreground;
+  @apply shadow-sm;
+}
+
+.dark .filter-pill-active {
+  @apply shadow-md text-white;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-border rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/30;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-border/80;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/40;
+}
+
+/* Skeleton loading animation */
+.skeleton {
+  @apply animate-pulse bg-muted rounded-lg;
+}
+
+.dark .skeleton {
+  @apply bg-muted/60;
+}
+
+/* Subtle animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.96 0 0) 0%,
+    oklch(0.90 0 0) 50%,
+    oklch(0.96 0 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.22 0 0) 0%,
+    oklch(0.28 0 0) 50%,
+    oklch(0.22 0 0) 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* ============================================
+   MICRO-INTERACTION UTILITIES
+   ============================================ */
+
+/* Interactive element base - adds consistent interaction feel */
+.interactive {
+  @apply transition-all duration-200;
+  @apply hover:brightness-105 active:scale-[0.98] active:brightness-95;
+}
+
+/* Card lift effect utility */
+.hover-lift {
+  @apply transition-all duration-300 ease-out;
+  @apply hover:-translate-y-0.5 hover:shadow-lg;
+}
+
+.hover-lift-lg {
+  @apply transition-all duration-300 ease-out;
+  @apply hover:-translate-y-1 hover:shadow-xl;
+}
+
+/* Press effect for buttons */
+.press-effect {
+  @apply transition-transform duration-150;
+  @apply active:scale-[0.98];
+}
+
+/* Focus ring utility - consistent accessible focus states */
+.focus-ring {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+}
+
+.focus-ring-inset {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset;
+}
+
+/* Subtle glow on hover for dark mode */
+.hover-glow {
+  @apply transition-shadow duration-300;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px oklch(0.45 0.18 265 / 0.15);
+}
+
+.dark .hover-glow:hover {
+  box-shadow: 0 0 25px oklch(0.65 0.20 265 / 0.2);
+}
+
+/* Icon bounce on hover */
+.icon-bounce {
+  @apply transition-transform duration-200;
+}
+
+.icon-bounce:hover {
+  @apply scale-110;
+}
+
+.icon-bounce:active {
+  @apply scale-95;
+}
+
+/* Smooth color transitions for theme switching */
+.theme-transition {
+  @apply transition-colors duration-300;
+}
+
+/* Link hover underline animation */
+.link-underline {
+  @apply relative;
+}
+
+.link-underline::after {
+  content: '';
+  @apply absolute bottom-0 left-0 w-0 h-0.5 bg-current;
+  @apply transition-all duration-300;
+}
+
+.link-underline:hover::after {
+  @apply w-full;
+}
+
+/* Pulse animation for notifications/badges */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Scale in animation for new elements */
+@keyframes scale-in {
+  0% { transform: scale(0.95); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+/* Slide up animation for modals/sheets */
+@keyframes slide-up {
+  0% { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Number counter text styling with tabular figures */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Improved disabled state styling */
+.disabled-state {
+  @apply opacity-50 cursor-not-allowed pointer-events-none;
+}
+
+/* Dark mode specific text improvements for colored backgrounds */
+.dark .text-on-color {
+  text-shadow: 0 1px 2px oklch(0 0 0 / 0.3);
+}
