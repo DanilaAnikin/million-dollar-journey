@@ -124,9 +124,11 @@ export default function SettingsPage() {
 
     try {
       // Ensure targetDate is properly formatted as YYYY-MM-DD string
-      const formattedDate = targetDate instanceof Date
-        ? targetDate.toISOString().split('T')[0]
-        : targetDate;
+      // Cast to 'any' to allow the instanceof check regardless of the interface type
+      const rawDate = targetDate as any;
+      const formattedDate = rawDate instanceof Date
+        ? rawDate.toISOString().split('T')[0]
+        : String(rawDate);
 
       // Use the server action instead of direct Supabase call
       const result = await updateProfile({

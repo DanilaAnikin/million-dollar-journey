@@ -29,9 +29,11 @@ export async function updateProfile(data: {
   if (data.targetAmountUsd !== undefined) updates.target_amount_usd = data.targetAmountUsd;
   if (data.targetDate !== undefined) {
     // Ensure target_date is properly formatted as YYYY-MM-DD string
-    const formattedDate = data.targetDate instanceof Date
-      ? data.targetDate.toISOString().split('T')[0]
-      : data.targetDate;
+    // Cast to 'any' to allow the instanceof check regardless of the interface type
+    const rawDate = data.targetDate as any;
+    const formattedDate = rawDate instanceof Date
+      ? rawDate.toISOString().split('T')[0]
+      : String(rawDate);
     updates.target_date = formattedDate;
   }
   if (data.preferredCurrency !== undefined) updates.preferred_currency = data.preferredCurrency;
