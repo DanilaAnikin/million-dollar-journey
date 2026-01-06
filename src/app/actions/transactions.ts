@@ -359,3 +359,115 @@ export async function addAdjustment(
   revalidatePath('/transactions');
   return result;
 }
+
+/**
+ * Delete a transaction and reverse its effect on the account balance
+ */
+export async function deleteTransaction(id: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  const supabase = await createClient();
+
+  // Get authenticated user with fallback
+  let userId = (await supabase.auth.getUser()).data.user?.id;
+  if (!userId) {
+    const { data: { session } } = await supabase.auth.getSession();
+    userId = session?.user?.id;
+  }
+
+  if (!userId) {
+    return { success: false, error: 'You must be logged in' };
+  }
+
+  try {
+    // Fetch the transaction to verify ownership and get details for balance reversal
+    const { data: transaction, error: fetchError } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError || !transaction) {
+      return { success: false, error: 'Transaction not found' };
+    }
+
+    // Delete the transaction
+    const { error: deleteError } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (deleteError) {
+      console.error('deleteTransaction: Delete error', deleteError);
+      return { success: false, error: 'Failed to delete transaction' };
+    }
+
+    // Reverse the transaction's effect on the account balance
+    // For transfers, we need to handle both accounts
+    if (transaction.type === 'transfer' && transaction.transfer_to_account_id) {
+      // Get source account balance
+      const { data: sourceAcc } = await supabase
+        .from('accounts')
+        .select('balance')
+        .eq('id', transaction.account_id)
+        .single();
+
+      // Get destination account balance
+      const { data: destAcc } = await supabase
+        .from('accounts')
+        .select('balance')
+        .eq('id', transaction.transfer_to_account_id)
+        .single();
+
+      if (sourceAcc) {
+        // Reverse: if amount was negative (transfer out), add it back
+        await supabase
+          .from('accounts')
+          .update({ balance: sourceAcc.balance - transaction.amount })
+          .eq('id', transaction.account_id);
+      }
+
+      if (destAcc) {
+        // Reverse: if transfer added to dest, subtract it
+        // Note: The original createTransaction adds amount to destination
+        // So we need to subtract the absolute value
+        await supabase
+          .from('accounts')
+          .update({ balance: destAcc.balance - Math.abs(transaction.amount) })
+          .eq('id', transaction.transfer_to_account_id);
+      }
+    } else {
+      // For regular transactions (income, expense, adjustment)
+      // Reverse the balance change
+      const { data: account } = await supabase
+        .from('accounts')
+        .select('balance')
+        .eq('id', transaction.account_id)
+        .single();
+
+      if (account) {
+        // Reverse the original transaction:
+        // - If it was income (positive amount), subtract it
+        // - If it was expense (negative amount), add it back (subtracting negative = adding)
+        const newBalance = account.balance - transaction.amount;
+
+        await supabase
+          .from('accounts')
+          .update({ balance: newBalance })
+          .eq('id', transaction.account_id);
+      }
+    }
+
+    revalidatePath('/');
+    revalidatePath('/transactions');
+    revalidatePath('/accounts');
+
+    return { success: true };
+  } catch (error) {
+    console.error('deleteTransaction: Unexpected error', error);
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}

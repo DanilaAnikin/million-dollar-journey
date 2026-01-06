@@ -213,7 +213,7 @@ export function DashboardContent() {
       </div>
 
       {/* Recent Transactions - Full width */}
-      <RecentTransactions transactions={transactions} />
+      <RecentTransactions transactions={transactions} onTransactionDeleted={loadData} />
     </div>
   );
 }

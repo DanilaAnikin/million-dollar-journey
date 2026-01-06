@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowUpRight, ArrowDownRight, ArrowLeftRight, RefreshCw, Receipt, Loader2, Plus } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, ArrowLeftRight, RefreshCw, Receipt, Loader2, Plus, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Select,
   SelectContent,
@@ -12,7 +13,7 @@ import {
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useCurrency } from '@/lib/contexts/CurrencyContext';
 import { formatDate } from '@/lib/utils';
-import { getTransactions, getAccountsForTransactions } from '@/app/actions/transactions';
+import { getTransactions, getAccountsForTransactions, deleteTransaction } from '@/app/actions/transactions';
 import type { Transaction, Account, TransactionType, Currency } from '@/types/database';
 import { NewTransactionModal } from '@/components/transactions/NewTransactionModal';
 
@@ -58,6 +59,7 @@ export default function TransactionsPage() {
   const [filterAccount, setFilterAccount] = useState<string>('all');
   const [selectedCurrency, setSelectedCurrency] = useState<string>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -83,6 +85,27 @@ export default function TransactionsPage() {
     if (!accountId) return t('common.unknown');
     const account = accounts.find((a) => a.id === accountId);
     return account?.name || t('common.unknown');
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm(t('transactions.confirmDelete'))) {
+      return;
+    }
+
+    setDeletingId(id);
+    try {
+      const result = await deleteTransaction(id);
+      if (result.success) {
+        toast.success(t('transactions.deleted'));
+        loadData();
+      } else {
+        toast.error(result.error || t('transactions.deleteError'));
+      }
+    } catch (error) {
+      toast.error(t('transactions.deleteError'));
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   // Extract distinct currencies from transactions
@@ -217,7 +240,7 @@ export default function TransactionsPage() {
                   return (
                     <div
                       key={tx.id}
-                      className="transaction-item flex items-center justify-between p-4"
+                      className="group transaction-item flex items-center justify-between p-4"
                     >
                       <div className="flex items-center gap-3">
                         {/* Category icon in colored circle */}
@@ -241,15 +264,29 @@ export default function TransactionsPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="text-right whitespace-nowrap">
-                        <div className={`font-semibold ${amountColorClass}`}>
-                          {amountPrefix}{formatted}
-                        </div>
-                        {showConversion && convertedFormatted && (
-                          <div className="text-xs text-muted-foreground">
-                            {amountPrefix}{convertedFormatted}
+                      <div className="flex items-center gap-3">
+                        <div className="text-right whitespace-nowrap">
+                          <div className={`font-semibold ${amountColorClass}`}>
+                            {amountPrefix}{formatted}
                           </div>
-                        )}
+                          {showConversion && convertedFormatted && (
+                            <div className="text-xs text-muted-foreground">
+                              {amountPrefix}{convertedFormatted}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleDelete(tx.id)}
+                          disabled={deletingId === tx.id}
+                          className="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-destructive transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={t('common.delete')}
+                        >
+                          {deletingId === tx.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </button>
                       </div>
                     </div>
                   );

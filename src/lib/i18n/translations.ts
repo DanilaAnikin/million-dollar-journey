@@ -645,6 +645,18 @@ export const translations = {
     en: 'Update',
     cs: 'Úprava',
   },
+  'transactions.confirmDelete': {
+    en: 'Are you sure you want to delete this transaction?',
+    cs: 'Opravdu chcete smazat tuto transakci?',
+  },
+  'transactions.deleted': {
+    en: 'Transaction deleted',
+    cs: 'Transakce smazána',
+  },
+  'transactions.deleteError': {
+    en: 'Failed to delete transaction',
+    cs: 'Nepodařilo se smazat transakci',
+  },
 
   // Settings
   'settings.title': {

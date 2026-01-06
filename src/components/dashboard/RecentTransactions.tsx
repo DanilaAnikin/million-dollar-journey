@@ -1,15 +1,19 @@
 'use client';
 
-import { ArrowUpRight, ArrowDownRight, ArrowLeftRight, RefreshCw, ArrowRight, Receipt } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowUpRight, ArrowDownRight, ArrowLeftRight, RefreshCw, ArrowRight, Receipt, Trash2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useCurrency } from '@/lib/contexts/CurrencyContext';
 import { formatDate } from '@/lib/utils';
+import { deleteTransaction } from '@/app/actions/transactions';
 import type { Transaction, Currency } from '@/types/database';
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
+  onTransactionDeleted?: () => void;
 }
 
 const typeIcons = {
@@ -28,9 +32,31 @@ const typeColors = {
   interest: 'text-purple-500 bg-purple-500/10',
 };
 
-export function RecentTransactions({ transactions }: RecentTransactionsProps) {
+export function RecentTransactions({ transactions, onTransactionDeleted }: RecentTransactionsProps) {
   const { t } = useLanguage();
   const { currency: globalCurrency, convert, formatAmount } = useCurrency();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm(t('transactions.confirmDelete'))) {
+      return;
+    }
+
+    setDeletingId(id);
+    try {
+      const result = await deleteTransaction(id);
+      if (result.success) {
+        toast.success(t('transactions.deleted'));
+        onTransactionDeleted?.();
+      } else {
+        toast.error(result.error || t('transactions.deleteError'));
+      }
+    } catch (error) {
+      toast.error(t('transactions.deleteError'));
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (transactions.length === 0) {
     return (
@@ -83,7 +109,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
             return (
               <div
                 key={tx.id}
-                className={`flex items-center justify-between py-3 ${
+                className={`group flex items-center justify-between py-3 ${
                   index !== Math.min(transactions.length, 5) - 1 ? 'border-b border-border/30' : ''
                 }`}
               >
@@ -122,6 +148,19 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                       </div>
                     )}
                   </div>
+                  {/* Delete button */}
+                  <button
+                    onClick={() => handleDelete(tx.id)}
+                    disabled={deletingId === tx.id}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={t('common.delete')}
+                  >
+                    {deletingId === tx.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
               </div>
             );
