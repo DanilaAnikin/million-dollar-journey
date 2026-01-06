@@ -3,7 +3,8 @@
 
 import { TARGET_AMOUNT_USD, TARGET_DATE, DEFAULT_INVESTMENT_INTEREST_RATE } from '@/lib/constants';
 import { toUSD } from './currency';
-import type { Account, Currency } from '@/types/database';
+import { calculatePortfolioTotals } from './portfolioCalculator';
+import type { Account, AccountCategory, Currency } from '@/types/database';
 
 // ================================================
 // TYPES
@@ -14,6 +15,8 @@ export interface CalculationResult {
   currentNetWorthUSD: number;
   currentInvestmentsUSD: number;
   currentCashUSD: number;
+  currentAssetsUSD: number;      // Total assets (investments + cash)
+  currentLiabilitiesUSD: number; // Total liabilities (debt)
 
   // Projections
   projectedNetWorthUSD: number;
@@ -158,27 +161,52 @@ export function getTimeRemaining(targetDate: Date = TARGET_DATE): { months: numb
  * The main calculation function that computes everything needed for the dashboard
  *
  * Logic:
- * 1. Sum up all current holdings converted to USD
+ * 1. Sum up all current holdings converted to USD (using centralized portfolio calculator)
  * 2. Calculate future value of current holdings (investments grow, cash doesn't)
  * 3. Calculate the gap between target and projected future value
  * 4. Calculate required monthly contribution to bridge the gap
+ *
+ * @param accounts - User's accounts
+ * @param targetAmount - Target amount in USD
+ * @param targetDate - Target date to reach the goal
+ * @param defaultInvestmentRate - Default investment growth rate
+ * @param rates - Exchange rates
+ * @param categories - Account categories (optional, for asset/liability distinction)
  */
 export async function calculateMonthlyContribution(
   accounts: Account[],
   targetAmount: number = TARGET_AMOUNT_USD,
   targetDate: Date = TARGET_DATE,
   defaultInvestmentRate: number = DEFAULT_INVESTMENT_INTEREST_RATE,
-  rates?: import('./currency').ExchangeRates
+  rates?: import('./currency').ExchangeRates,
+  categories?: AccountCategory[]
 ): Promise<CalculationResult> {
   const { months: monthsRemaining, years: yearsRemaining } = getTimeRemaining(targetDate);
 
+  // Use centralized portfolio calculator if categories are provided
+  // Otherwise fall back to legacy calculation for backward compatibility
+  const portfolioTotals = categories
+    ? calculatePortfolioTotals(accounts, categories, rates || {})
+    : null;
+
   // Edge case: target date has passed
   if (yearsRemaining <= 0) {
-    const currentTotal = await calculateTotalInUSD(accounts, rates);
+    const currentTotal = portfolioTotals
+      ? {
+          total: portfolioTotals.netWorthUSD,
+          investments: portfolioTotals.totalInvestmentsUSD,
+          cash: portfolioTotals.totalCashUSD,
+          assets: portfolioTotals.totalAssetsUSD,
+          liabilities: portfolioTotals.totalLiabilitiesUSD,
+        }
+      : await calculateTotalInUSD(accounts, rates);
+
     return {
       currentNetWorthUSD: currentTotal.total,
       currentInvestmentsUSD: currentTotal.investments,
       currentCashUSD: currentTotal.cash,
+      currentAssetsUSD: currentTotal.assets ?? currentTotal.total,
+      currentLiabilitiesUSD: currentTotal.liabilities ?? 0,
       projectedNetWorthUSD: currentTotal.total,
       futureValueOfCurrentHoldings: currentTotal.total,
       gapToTarget: Math.max(0, targetAmount - currentTotal.total),
@@ -193,12 +221,30 @@ export async function calculateMonthlyContribution(
   }
 
   // Step 1: Calculate current holdings in USD
-  const currentHoldings = await calculateTotalInUSD(accounts, rates);
+  const currentHoldings = portfolioTotals
+    ? {
+        total: portfolioTotals.netWorthUSD,
+        investments: portfolioTotals.totalInvestmentsUSD,
+        cash: portfolioTotals.totalCashUSD,
+        assets: portfolioTotals.totalAssetsUSD,
+        liabilities: portfolioTotals.totalLiabilitiesUSD,
+      }
+    : await calculateTotalInUSD(accounts, rates);
 
   // Step 2: Calculate future value of current holdings
+  // Only asset accounts contribute to future value (liabilities don't grow positively)
   let futureValueOfCurrentHoldings = 0;
 
   for (const account of accounts) {
+    // Skip liability accounts for future value calculation
+    if (categories) {
+      const category = categories.find(c => c.id === account.category_id);
+      if (category?.type === 'liability') {
+        // Liabilities don't grow (or if they do, it's bad - we skip them for projection)
+        continue;
+      }
+    }
+
     const balanceUSD = toUSD(account.balance, account.currency as Currency, rates);
 
     if (account.is_investment) {
@@ -217,6 +263,10 @@ export async function calculateMonthlyContribution(
       futureValueOfCurrentHoldings += balanceUSD;
     }
   }
+
+  // Subtract liabilities from future value (they don't disappear)
+  const liabilitiesUSD = currentHoldings.liabilities ?? 0;
+  futureValueOfCurrentHoldings -= liabilitiesUSD;
 
   // Step 3: Calculate the gap
   const gapToTarget = Math.max(0, targetAmount - futureValueOfCurrentHoldings);
@@ -244,6 +294,8 @@ export async function calculateMonthlyContribution(
     currentNetWorthUSD: currentHoldings.total,
     currentInvestmentsUSD: currentHoldings.investments,
     currentCashUSD: currentHoldings.cash,
+    currentAssetsUSD: currentHoldings.assets ?? currentHoldings.total,
+    currentLiabilitiesUSD: currentHoldings.liabilities ?? 0,
     projectedNetWorthUSD,
     futureValueOfCurrentHoldings,
     gapToTarget,
@@ -259,6 +311,8 @@ export async function calculateMonthlyContribution(
 
 /**
  * Helper: Calculate total holdings in USD
+ * Note: This is a legacy function that doesn't distinguish assets from liabilities.
+ * For proper asset/liability handling, use calculatePortfolioTotals with categories.
  */
 async function calculateTotalInUSD(
   accounts: Account[],
@@ -267,6 +321,8 @@ async function calculateTotalInUSD(
   total: number;
   investments: number;
   cash: number;
+  assets?: number;
+  liabilities?: number;
 }> {
   let investments = 0;
   let cash = 0;
@@ -281,10 +337,15 @@ async function calculateTotalInUSD(
     }
   }
 
+  const total = investments + cash;
+
   return {
-    total: investments + cash,
+    total,
     investments,
     cash,
+    // Legacy: no category info, so assets = total, liabilities = 0
+    assets: total,
+    liabilities: 0,
   };
 }
 

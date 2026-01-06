@@ -108,12 +108,20 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                   }`}>
                     {t(`transactionType.${tx.type}` as any)}
                   </span>
-                  {/* Amount */}
-                  <span className={`font-semibold text-sm ${
-                    isPositive ? 'text-emerald-500' : 'text-red-500'
-                  }`}>
-                    {isPositive ? '+' : ''}{formatAmount(convert(tx.amount, tx.currency as Currency, globalCurrency), globalCurrency)}
-                  </span>
+                  {/* Amount - show original currency */}
+                  <div className="text-right">
+                    <span className={`font-semibold text-sm ${
+                      isPositive ? 'text-emerald-500' : 'text-red-500'
+                    }`}>
+                      {isPositive ? '+' : ''}{formatAmount(tx.amount, tx.currency as Currency)}
+                    </span>
+                    {/* Show converted amount if different currency */}
+                    {tx.currency !== globalCurrency && (
+                      <div className="text-xs text-muted-foreground">
+                        {isPositive ? '+' : ''}{formatAmount(convert(tx.amount, tx.currency as Currency, globalCurrency), globalCurrency)}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             );

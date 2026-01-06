@@ -56,6 +56,7 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<string>('all');
   const [filterAccount, setFilterAccount] = useState<string>('all');
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -84,9 +85,13 @@ export default function TransactionsPage() {
     return account?.name || t('common.unknown');
   };
 
+  // Extract distinct currencies from transactions
+  const availableCurrencies = ['ALL', ...Array.from(new Set(transactions.map((tx) => tx.currency)))];
+
   const filteredTransactions = transactions.filter((tx) => {
     if (filterType !== 'all' && tx.type !== filterType) return false;
     if (filterAccount !== 'all' && tx.account_id !== filterAccount) return false;
+    if (selectedCurrency !== 'ALL' && tx.currency !== selectedCurrency) return false;
     return true;
   });
 
@@ -130,6 +135,24 @@ export default function TransactionsPage() {
           ))}
         </div>
 
+        {/* Currency filter pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
+            {t('transactions.currency')}:
+          </span>
+          {availableCurrencies.map((currency) => (
+            <button
+              key={currency}
+              onClick={() => setSelectedCurrency(currency)}
+              className={`filter-pill whitespace-nowrap ${
+                selectedCurrency === currency ? 'filter-pill-active' : ''
+              }`}
+            >
+              {currency === 'ALL' ? t('transactions.all') : currency}
+            </button>
+          ))}
+        </div>
+
         {/* Account filter dropdown */}
         <Select value={filterAccount} onValueChange={setFilterAccount}>
           <SelectTrigger className="w-[200px] rounded-xl">
@@ -154,7 +177,9 @@ export default function TransactionsPage() {
           </div>
           <h3 className="text-lg font-semibold mt-4">{t('transactions.noTransactions')}</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            {t('transactions.noTransactionsHint')}
+            {transactions.length > 0 && (filterType !== 'all' || filterAccount !== 'all' || selectedCurrency !== 'ALL')
+              ? t('transactions.noTransactionsForCurrency' as any)
+              : t('transactions.noTransactionsHint')}
           </p>
         </div>
       ) : (
@@ -168,9 +193,14 @@ export default function TransactionsPage() {
                   const bgClass = iconBackgrounds[tx.type as keyof typeof iconBackgrounds] || 'bg-gray-100 dark:bg-gray-500/20';
                   const iconColor = iconColors[tx.type as keyof typeof iconColors] || 'text-gray-600 dark:text-gray-400';
 
-                  // Convert and format amount using global currency
-                  const displayAmount = convert(tx.amount, tx.currency as Currency, globalCurrency);
-                  const formatted = formatAmount(displayAmount, globalCurrency);
+                  // Format amount using original transaction currency
+                  const formatted = formatAmount(tx.amount, tx.currency as Currency);
+
+                  // Calculate converted amount if currency differs from global preference
+                  const showConversion = tx.currency !== globalCurrency;
+                  const convertedFormatted = showConversion
+                    ? formatAmount(convert(tx.amount, tx.currency as Currency, globalCurrency), globalCurrency)
+                    : null;
 
                   // Determine color based on transaction type
                   const amountColorClass =
@@ -211,8 +241,15 @@ export default function TransactionsPage() {
                           </p>
                         </div>
                       </div>
-                      <div className={`font-semibold text-right whitespace-nowrap ${amountColorClass}`}>
-                        {amountPrefix}{formatted}
+                      <div className="text-right whitespace-nowrap">
+                        <div className={`font-semibold ${amountColorClass}`}>
+                          {amountPrefix}{formatted}
+                        </div>
+                        {showConversion && convertedFormatted && (
+                          <div className="text-xs text-muted-foreground">
+                            {amountPrefix}{convertedFormatted}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

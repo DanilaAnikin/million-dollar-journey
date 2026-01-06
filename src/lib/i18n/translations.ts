@@ -341,6 +341,14 @@ export const translations = {
     en: 'APY',
     cs: 'Roční výnos',
   },
+  'accounts.noAccountsForCurrency': {
+    en: 'No accounts found for this currency',
+    cs: 'Nenalezeny žádné účty v této měně',
+  },
+  'accounts.filterByCurrency': {
+    en: 'Filter by currency',
+    cs: 'Filtrovat podle měny',
+  },
   'accounts.namePlaceholder': {
     en: 'e.g., Interactive Brokers',
     cs: 'např. Fio banka',
@@ -544,6 +552,14 @@ export const translations = {
   'transactions.noTransactionsHint': {
     en: 'Add your first transaction to start tracking',
     cs: 'Přidejte svou první transakci a začněte sledovat',
+  },
+  'transactions.currency': {
+    en: 'Currency',
+    cs: 'Měna',
+  },
+  'transactions.noTransactionsForCurrency': {
+    en: 'No transactions found for this currency',
+    cs: 'Pro tuto měnu nebyly nalezeny žádné transakce',
   },
   'transactions.note': {
     en: 'Note',

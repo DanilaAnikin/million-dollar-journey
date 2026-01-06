@@ -2,7 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { getLiveRates, toUSD } from '@/lib/services/currency';
+import { getLiveRates } from '@/lib/services/currency';
+import { calculatePortfolioTotals } from '@/lib/services/portfolioCalculator';
 import type { Account, AccountCategory, Currency } from '@/types/database';
 
 export interface CreateAccountInput {
@@ -159,9 +160,12 @@ export async function getAccounts(includeInactive: boolean = false): Promise<{
   accounts: Account[];
   categories: AccountCategory[];
   totals: {
-    totalUSD: number;
+    netWorthUSD: number;
+    totalUSD: number; // Alias for netWorthUSD (backward compatibility)
     assetsUSD: number;
     liabilitiesUSD: number;
+    investmentsUSD: number;
+    cashUSD: number;
     rates: Record<Currency, number>;
   };
 }> {
@@ -182,9 +186,12 @@ export async function getAccounts(includeInactive: boolean = false): Promise<{
       accounts: [],
       categories: [],
       totals: {
+        netWorthUSD: 0,
         totalUSD: 0,
         assetsUSD: 0,
         liabilitiesUSD: 0,
+        investmentsUSD: 0,
+        cashUSD: 0,
         rates: {
           USD: 1,
           EUR: 1,
@@ -221,9 +228,12 @@ export async function getAccounts(includeInactive: boolean = false): Promise<{
       accounts: [],
       categories: [],
       totals: {
+        netWorthUSD: 0,
         totalUSD: 0,
         assetsUSD: 0,
         liabilitiesUSD: 0,
+        investmentsUSD: 0,
+        cashUSD: 0,
         rates: {
           USD: 1,
           EUR: 1,
@@ -241,33 +251,21 @@ export async function getAccounts(includeInactive: boolean = false): Promise<{
   const accounts = accountsResult.data || [];
   const categories = categoriesResult.data || [];
 
-  // Calculate totals using live rates (same as dashboard)
+  // Calculate totals using centralized portfolio calculator
   const rates = await getLiveRates();
-
-  let totalUSD = 0;
-  let assetsUSD = 0;
-  let liabilitiesUSD = 0;
-
-  for (const account of accounts) {
-    const amountInUSD = toUSD(account.balance, account.currency as Currency, rates);
-    totalUSD += amountInUSD;
-
-    // Check if liability based on category
-    const category = categories.find(c => c.id === account.category_id);
-    if (category?.type === 'liability') {
-      liabilitiesUSD += Math.abs(amountInUSD);
-    } else {
-      assetsUSD += amountInUSD;
-    }
-  }
+  const portfolioTotals = calculatePortfolioTotals(accounts, categories, rates);
 
   return {
     accounts,
     categories,
     totals: {
-      totalUSD,
-      assetsUSD,
-      liabilitiesUSD,
+      // Net worth is assets minus liabilities
+      netWorthUSD: portfolioTotals.netWorthUSD,
+      totalUSD: portfolioTotals.netWorthUSD, // Alias for backward compatibility
+      assetsUSD: portfolioTotals.totalAssetsUSD,
+      liabilitiesUSD: portfolioTotals.totalLiabilitiesUSD,
+      investmentsUSD: portfolioTotals.totalInvestmentsUSD,
+      cashUSD: portfolioTotals.totalCashUSD,
       rates: {
         USD: 1,
         EUR: rates.EUR,

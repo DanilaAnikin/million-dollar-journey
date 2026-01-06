@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabase/client';
 import { TARGET_AMOUNT_USD, TARGET_DATE } from '@/lib/constants';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useCurrency } from '@/lib/contexts/CurrencyContext';
-import type { Account, Transaction, Profile } from '@/types/database';
+import type { Account, AccountCategory, Transaction, Profile } from '@/types/database';
 
 export function DashboardContent() {
   const { t } = useLanguage();
@@ -44,8 +44,8 @@ export function DashboardContent() {
       // Fetch live rates first (same as getAccounts does)
       const liveRates = await getLiveRates();
 
-      // Fetch accounts, transactions, and profile in parallel
-      const [accountsRes, transactionsRes, profileRes] = await Promise.all([
+      // Fetch accounts, transactions, profile, and categories in parallel
+      const [accountsRes, transactionsRes, profileRes, categoriesRes] = await Promise.all([
         supabase
           .from('accounts')
           .select('*')
@@ -63,15 +63,21 @@ export function DashboardContent() {
           .select('*')
           .eq('id', user.id)
           .single(),
+        supabase
+          .from('account_categories')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('sort_order'),
       ]);
 
       const fetchedAccounts = accountsRes.data || [];
+      const fetchedCategories = (categoriesRes.data || []) as AccountCategory[];
       const profile = profileRes.data as Profile | null;
 
       setAccounts(fetchedAccounts);
       setTransactions(transactionsRes.data || []);
 
-      // Calculate projections using live rates and user's custom target settings
+      // Calculate projections using live rates, categories, and user's custom target settings
       if (fetchedAccounts.length > 0) {
         // Use profile settings if available, otherwise use defaults from constants
         const customTargetAmount = profile?.target_amount_usd;
@@ -82,12 +88,14 @@ export function DashboardContent() {
           setTargetAmount(customTargetAmount);
         }
 
+        // Pass categories to use centralized portfolio calculator for accurate net worth
         const calc = await calculateMonthlyContribution(
           fetchedAccounts,
           customTargetAmount,
           customTargetDate,
           undefined,
-          liveRates
+          liveRates,
+          fetchedCategories  // Now includes categories for proper asset/liability handling
         );
         setCalculation(calc);
       }

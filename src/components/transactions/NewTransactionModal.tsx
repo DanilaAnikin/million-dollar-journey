@@ -25,6 +25,7 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
   const modalRef = useRef<HTMLDivElement>(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const currencyDropdownRef = useRef<HTMLDivElement>(null);
   const initialCurrencySynced = useRef(false);
 
   // Form state
@@ -90,7 +91,11 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
   // Handle click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const isInsideDropdownRef = dropdownRef.current?.contains(target);
+      const isInsideCurrencyDropdown = currencyDropdownRef.current?.contains(target);
+
+      if (!isInsideDropdownRef && !isInsideCurrencyDropdown) {
         setIsCurrencyOpen(false);
         setIsAccountOpen(false);
         setIsFromAccountOpen(false);
@@ -325,7 +330,7 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
                 className="text-5xl font-bold text-center bg-transparent border-none focus:outline-none focus:ring-0 w-48 placeholder-slate-300 dark:placeholder-slate-600 text-slate-900 dark:text-white"
               />
               {/* Currency Dropdown */}
-              <div className="relative">
+              <div className="relative" ref={currencyDropdownRef}>
                 <button
                   type="button"
                   onClick={() => {
