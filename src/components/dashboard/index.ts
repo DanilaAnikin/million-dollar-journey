@@ -4,3 +4,6 @@ export { AccountsSummary } from './AccountsSummary';
 export { RecentTransactions } from './RecentTransactions';
 export { EmptyState } from './EmptyState';
 export { MathExplanationDialog } from './MathExplanationDialog';
+export { NetWorthChart } from './NetWorthChart';
+export { AllocationChart } from './AllocationChart';
+export { BurnRateCard } from './BurnRateCard';

@@ -6,7 +6,8 @@ import {
   LayoutDashboard,
   Wallet,
   ArrowLeftRight,
-  Settings
+  Settings,
+  Repeat
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
@@ -19,6 +20,7 @@ export function BottomNav() {
     { href: '/', label: t('nav.home'), icon: LayoutDashboard },
     { href: '/accounts', label: t('nav.accounts'), icon: Wallet },
     { href: '/transactions', label: t('nav.transactions'), icon: ArrowLeftRight },
+    { href: '/recurring', label: t('nav.recurring'), icon: Repeat },
     { href: '/settings', label: t('nav.settings'), icon: Settings },
   ];
 

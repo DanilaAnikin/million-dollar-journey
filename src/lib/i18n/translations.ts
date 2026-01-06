@@ -209,6 +209,62 @@ export const translations = {
     en: 'Failed to load dashboard data',
     cs: 'Nepodařilo se načíst data přehledu',
   },
+  'dashboard.assetAllocation': {
+    en: 'Asset Allocation',
+    cs: 'Rozložení majetku',
+  },
+  'dashboard.total': {
+    en: 'Total',
+    cs: 'Celkem',
+  },
+  'dashboard.noData': {
+    en: 'No data available',
+    cs: 'Žádná data k dispozici',
+  },
+  'dashboard.investments': {
+    en: 'Investments',
+    cs: 'Investice',
+  },
+  'dashboard.cash': {
+    en: 'Cash',
+    cs: 'Hotovost',
+  },
+  'dashboard.netWorthHistory': {
+    en: 'Net Worth History',
+    cs: 'Historie majetku',
+  },
+  'dashboard.monthlyCommitments': {
+    en: 'Monthly Commitments',
+    cs: 'Měsíční závazky',
+  },
+  'dashboard.burnRate': {
+    en: 'Burn Rate',
+    cs: 'Měsíční výdaje',
+  },
+  'dashboard.fixedExpenses': {
+    en: 'Fixed Expenses',
+    cs: 'Fixní výdaje',
+  },
+  'dashboard.fixedIncome': {
+    en: 'Fixed Income',
+    cs: 'Fixní příjem',
+  },
+  'dashboard.netRecurring': {
+    en: 'Net',
+    cs: 'Čistý',
+  },
+  'dashboard.viewRecurring': {
+    en: 'View Recurring',
+    cs: 'Zobrazit pravidelné',
+  },
+  'dashboard.noRecurring': {
+    en: 'No recurring transactions set up',
+    cs: 'Žádné pravidelné transakce',
+  },
+  'dashboard.commitmentRatio': {
+    en: 'Expenses vs Income',
+    cs: 'Výdaje vs příjem',
+  },
 
   // Welcome / Empty State
   'welcome.title': {
@@ -1004,6 +1060,146 @@ export const translations = {
   'currency.EUR': {
     en: 'EUR (€)',
     cs: 'EUR (€)',
+  },
+
+  // Recurring Transactions
+  'recurring.title': {
+    en: 'Recurring Payments',
+    cs: 'Pravidelne platby',
+  },
+  'recurring.addNew': {
+    en: 'Add Recurring',
+    cs: 'Pridat pravidelnou platbu',
+  },
+  'recurring.monthlyFixedCosts': {
+    en: 'Monthly Fixed Costs',
+    cs: 'Mesicni fixni naklady',
+  },
+  'recurring.monthlyIncome': {
+    en: 'Monthly Income',
+    cs: 'Mesicni prijem',
+  },
+  'recurring.netMonthly': {
+    en: 'Net Monthly',
+    cs: 'Mesicni bilance',
+  },
+  'recurring.frequency': {
+    en: 'Frequency',
+    cs: 'Frekvence',
+  },
+  'recurring.nextDue': {
+    en: 'Next Due',
+    cs: 'Dalsi platba',
+  },
+  'recurring.weekly': {
+    en: 'Weekly',
+    cs: 'Tydenni',
+  },
+  'recurring.monthly': {
+    en: 'Monthly',
+    cs: 'Mesicni',
+  },
+  'recurring.yearly': {
+    en: 'Yearly',
+    cs: 'Rocni',
+  },
+  'recurring.name': {
+    en: 'Name',
+    cs: 'Nazev',
+  },
+  'recurring.namePlaceholder': {
+    en: 'e.g., Netflix, Rent, Salary',
+    cs: 'napr. Netflix, Najem, Mzda',
+  },
+  'recurring.type': {
+    en: 'Type',
+    cs: 'Typ',
+  },
+  'recurring.active': {
+    en: 'Active',
+    cs: 'Aktivni',
+  },
+  'recurring.inactive': {
+    en: 'Inactive',
+    cs: 'Neaktivni',
+  },
+  'recurring.editRecurring': {
+    en: 'Edit Recurring Payment',
+    cs: 'Upravit pravidelnou platbu',
+  },
+  'recurring.addRecurring': {
+    en: 'Add Recurring Payment',
+    cs: 'Pridat pravidelnou platbu',
+  },
+  'recurring.noRecurring': {
+    en: 'No recurring payments yet',
+    cs: 'Zatim zadne pravidelne platby',
+  },
+  'recurring.noRecurringHint': {
+    en: 'Add subscriptions, rent, salary, and other recurring transactions',
+    cs: 'Pridejte predplatne, najem, mzdu a dalsi pravidelne transakce',
+  },
+  'recurring.createdSuccess': {
+    en: 'Recurring payment created!',
+    cs: 'Pravidelna platba vytvorena!',
+  },
+  'recurring.updatedSuccess': {
+    en: 'Recurring payment updated!',
+    cs: 'Pravidelna platba aktualizovana!',
+  },
+  'recurring.deletedSuccess': {
+    en: 'Recurring payment deleted',
+    cs: 'Pravidelna platba smazana',
+  },
+  'recurring.confirmDelete': {
+    en: 'Are you sure you want to delete this recurring payment?',
+    cs: 'Opravdu chcete smazat tuto pravidelnou platbu?',
+  },
+  'recurring.selectCategory': {
+    en: 'Select category (optional)',
+    cs: 'Vyberte kategorii (volitelne)',
+  },
+  'recurring.noCategory': {
+    en: 'No category',
+    cs: 'Bez kategorie',
+  },
+  'recurring.duePayments': {
+    en: 'You have {count} payment(s) due',
+    cs: 'Mate {count} splatnych plateb',
+  },
+  'recurring.clickToExpand': {
+    en: 'Click to view details',
+    cs: 'Kliknete pro zobrazeni detailu',
+  },
+  'recurring.processAll': {
+    en: 'Process All',
+    cs: 'Zpracovat vse',
+  },
+  'recurring.processing': {
+    en: 'Processing...',
+    cs: 'Zpracovavam...',
+  },
+  'recurring.process': {
+    en: 'Process',
+    cs: 'Zpracovat',
+  },
+  'recurring.dueOn': {
+    en: 'Due on',
+    cs: 'Splatne',
+  },
+  'recurring.processedSuccess': {
+    en: '{name} processed successfully!',
+    cs: '{name} uspesne zpracovano!',
+  },
+  'recurring.allProcessedSuccess': {
+    en: '{count} payment(s) processed successfully!',
+    cs: '{count} plateb uspesne zpracovano!',
+  },
+
+  // Navigation additions
+  'nav.recurring': {
+    en: 'Recurring',
+    cs: 'Pravidelne',
   },
 } as const;
 

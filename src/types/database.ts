@@ -195,6 +195,56 @@ export type Database = {
           updated_at?: string
         }
       }
+      recurring_transactions: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          amount: number
+          currency: string
+          frequency: 'weekly' | 'monthly' | 'yearly'
+          next_due_date: string
+          category_id: string | null
+          account_id: string
+          type: 'expense' | 'income'
+          description: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          name: string
+          amount: number
+          currency: string
+          frequency: 'weekly' | 'monthly' | 'yearly'
+          next_due_date: string
+          category_id?: string | null
+          account_id: string
+          type: 'expense' | 'income'
+          description?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          amount?: number
+          currency?: string
+          frequency?: 'weekly' | 'monthly' | 'yearly'
+          next_due_date?: string
+          category_id?: string | null
+          account_id?: string
+          type?: 'expense' | 'income'
+          description?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -292,6 +342,27 @@ export interface Milestone {
   name: string;
   target_amount_usd: number;
   achieved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Recurring transaction frequency options
+export type RecurringFrequency = 'weekly' | 'monthly' | 'yearly';
+
+// Recurring transaction record
+export interface RecurringTransaction {
+  id: string;
+  user_id: string;
+  name: string;
+  amount: number;
+  currency: Currency;
+  frequency: RecurringFrequency;
+  next_due_date: string; // ISO date string
+  category_id: string | null;
+  account_id: string;
+  type: 'expense' | 'income';
+  description: string | null;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }

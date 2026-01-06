@@ -10,7 +10,8 @@ import {
   TrendingUp,
   History,
   LogOut,
-  Loader2
+  Loader2,
+  Repeat
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ export function Sidebar() {
     { href: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
     { href: '/accounts', label: t('nav.accounts'), icon: Wallet },
     { href: '/transactions', label: t('nav.transactions'), icon: History },
+    { href: '/recurring', label: t('nav.recurring'), icon: Repeat },
     { href: '/settings', label: t('nav.settings'), icon: Settings },
   ];
 
