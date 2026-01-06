@@ -7,3 +7,4 @@ export { MathExplanationDialog } from './MathExplanationDialog';
 export { NetWorthChart } from './NetWorthChart';
 export { AllocationChart } from './AllocationChart';
 export { BurnRateCard } from './BurnRateCard';
+export { AIAdvisorCard } from './AIAdvisorCard';

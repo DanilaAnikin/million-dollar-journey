@@ -265,6 +265,54 @@ export const translations = {
     en: 'Expenses vs Income',
     cs: 'Výdaje vs příjem',
   },
+  'dashboard.aiAdvisor': {
+    en: 'AI Financial Advisor',
+    cs: 'AI Financni poradce',
+  },
+  'dashboard.aiDescription': {
+    en: 'Get personalized insights about your finances',
+    cs: 'Ziskejte personalizovane rady o vasich financich',
+  },
+  'dashboard.askAI': {
+    en: 'Ask AI',
+    cs: 'Zeptat se AI',
+  },
+  'dashboard.analyzing': {
+    en: 'Analyzing your finances...',
+    cs: 'Analyzuji vase finance...',
+  },
+  'dashboard.regenerate': {
+    en: 'Regenerate',
+    cs: 'Vygenerovat znovu',
+  },
+  'dashboard.aiError': {
+    en: 'Could not generate advice',
+    cs: 'Nepodarilo se vygenerovat radu',
+  },
+  'dashboard.tryAgain': {
+    en: 'Try Again',
+    cs: 'Zkusit znovu',
+  },
+  'dashboard.aiIdleMessage': {
+    en: 'Get AI-powered insights and personalized financial advice based on your accounts, transactions, and goals.',
+    cs: 'Ziskejte AI pohadane vhledy a personalizovane financni rady na zaklade vasich uctu, transakci a cilu.',
+  },
+  'dashboard.generatedJustNow': {
+    en: 'Generated just now',
+    cs: 'Vygenerovano prave ted',
+  },
+  'dashboard.generatedMinsAgo': {
+    en: 'Generated {mins} min ago',
+    cs: 'Vygenerovano pred {mins} min',
+  },
+  'dashboard.generatedHoursAgo': {
+    en: 'Generated {hours}h ago',
+    cs: 'Vygenerovano pred {hours}h',
+  },
+  'dashboard.generatedYesterday': {
+    en: 'Generated yesterday',
+    cs: 'Vygenerovano vcera',
+  },
 
   // Welcome / Empty State
   'welcome.title': {

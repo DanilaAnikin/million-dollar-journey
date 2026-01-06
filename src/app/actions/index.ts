@@ -6,3 +6,4 @@ export * from './accounts';
 export * from './transactions';
 export * from './settings';
 export * from './recurring';
+export * from './ai';

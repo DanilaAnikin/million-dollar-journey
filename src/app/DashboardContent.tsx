@@ -11,6 +11,7 @@ import {
   NetWorthChart,
   AllocationChart,
   BurnRateCard,
+  AIAdvisorCard,
 } from '@/components/dashboard';
 import { TrendingUp } from 'lucide-react';
 import { calculateMonthlyContribution, type CalculationResult } from '@/lib/services/calculator';
@@ -164,6 +165,9 @@ export function DashboardContent() {
 
   return (
     <div className="p-4 lg:p-6 space-y-6">
+      {/* AI Advisor Card - Prominent placement at top */}
+      <AIAdvisorCard />
+
       {/* Hero Cards - Side by side on desktop */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <NetWorthCard
