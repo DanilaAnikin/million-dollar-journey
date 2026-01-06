@@ -807,6 +807,30 @@ export const translations = {
     en: 'Export failed',
     cs: 'Export se nezdařil',
   },
+  'settings.exportDescription': {
+    en: 'Export your financial data for backup or analysis',
+    cs: 'Exportujte data pro zálohu nebo analýzu',
+  },
+  'settings.exportTransactions': {
+    en: 'Export All Transactions (CSV)',
+    cs: 'Exportovat všechny transakce (CSV)',
+  },
+  'settings.exportAccounts': {
+    en: 'Export Accounts (CSV)',
+    cs: 'Exportovat účty (CSV)',
+  },
+  'settings.exporting': {
+    en: 'Exporting...',
+    cs: 'Exportuji...',
+  },
+  'settings.importData': {
+    en: 'Import Data',
+    cs: 'Importovat data',
+  },
+  'settings.importDescription': {
+    en: 'Import transactions from CSV file',
+    cs: 'Importovat transakce z CSV souboru',
+  },
   'settings.currentNetWorthLabel': {
     en: 'Current Net Worth',
     cs: 'Aktuální čisté jmění',
@@ -1200,6 +1224,156 @@ export const translations = {
   'nav.recurring': {
     en: 'Recurring',
     cs: 'Pravidelne',
+  },
+  'nav.import': {
+    en: 'Import',
+    cs: 'Import',
+  },
+
+  // Import
+  'import.title': {
+    en: 'Import Transactions',
+    cs: 'Import transakcí',
+  },
+  'import.uploadFile': {
+    en: 'Upload CSV File',
+    cs: 'Nahrát CSV soubor',
+  },
+  'import.dragDrop': {
+    en: 'Drag & drop or click to browse',
+    cs: 'Přetáhněte nebo klikněte',
+  },
+  'import.preview': {
+    en: 'Preview & Map Columns',
+    cs: 'Náhled a mapování sloupců',
+  },
+  'import.mapColumn': {
+    en: 'Map to field',
+    cs: 'Přiřadit k poli',
+  },
+  'import.skip': {
+    en: 'Skip',
+    cs: 'Přeskočit',
+  },
+  'import.selectAccount': {
+    en: 'Select Account',
+    cs: 'Vybrat účet',
+  },
+  'import.importButton': {
+    en: 'Import Transactions',
+    cs: 'Importovat transakce',
+  },
+  'import.success': {
+    en: 'Successfully imported {count} transactions',
+    cs: 'Úspěšně importováno {count} transakcí',
+  },
+  'import.requiredFields': {
+    en: 'Date and Amount must be mapped',
+    cs: 'Datum a částka musí být přiřazeny',
+  },
+  'import.step1': {
+    en: 'Upload File',
+    cs: 'Nahrát soubor',
+  },
+  'import.step2': {
+    en: 'Map Columns',
+    cs: 'Mapování sloupců',
+  },
+  'import.step3': {
+    en: 'Configure',
+    cs: 'Nastavení',
+  },
+  'import.step4': {
+    en: 'Import',
+    cs: 'Import',
+  },
+  'import.next': {
+    en: 'Next',
+    cs: 'Další',
+  },
+  'import.back': {
+    en: 'Back',
+    cs: 'Zpět',
+  },
+  'import.fileSelected': {
+    en: 'File selected',
+    cs: 'Soubor vybrán',
+  },
+  'import.removeFile': {
+    en: 'Remove file',
+    cs: 'Odebrat soubor',
+  },
+  'import.previewRows': {
+    en: 'Showing first {count} rows',
+    cs: 'Zobrazeno prvních {count} řádků',
+  },
+  'import.date': {
+    en: 'Date',
+    cs: 'Datum',
+  },
+  'import.amount': {
+    en: 'Amount',
+    cs: 'Částka',
+  },
+  'import.description': {
+    en: 'Description',
+    cs: 'Popis',
+  },
+  'import.currency': {
+    en: 'Currency',
+    cs: 'Měna',
+  },
+  'import.type': {
+    en: 'Type (income/expense)',
+    cs: 'Typ (příjem/výdaj)',
+  },
+  'import.defaultType': {
+    en: 'Default Transaction Type',
+    cs: 'Výchozí typ transakce',
+  },
+  'import.defaultCategory': {
+    en: 'Default Category (optional)',
+    cs: 'Výchozí kategorie (volitelné)',
+  },
+  'import.noCategory': {
+    en: 'No category',
+    cs: 'Bez kategorie',
+  },
+  'import.importing': {
+    en: 'Importing...',
+    cs: 'Importuji...',
+  },
+  'import.importComplete': {
+    en: 'Import Complete',
+    cs: 'Import dokončen',
+  },
+  'import.importFailed': {
+    en: 'Import failed',
+    cs: 'Import selhal',
+  },
+  'import.rowsToImport': {
+    en: '{count} transactions will be imported',
+    cs: '{count} transakcí bude importováno',
+  },
+  'import.invalidFile': {
+    en: 'Please select a valid CSV file',
+    cs: 'Prosím vyberte platný CSV soubor',
+  },
+  'import.parseError': {
+    en: 'Error parsing CSV file',
+    cs: 'Chyba při zpracování CSV souboru',
+  },
+  'import.selectAccountFirst': {
+    en: 'Please select an account',
+    cs: 'Prosím vyberte účet',
+  },
+  'import.startOver': {
+    en: 'Import More',
+    cs: 'Importovat další',
+  },
+  'import.goToTransactions': {
+    en: 'View Transactions',
+    cs: 'Zobrazit transakce',
   },
 } as const;
 

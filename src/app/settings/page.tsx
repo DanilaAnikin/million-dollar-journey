@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, DollarSign, Target, Calendar, Download, Plus, Trash2, Tag } from 'lucide-react';
+import { Save, DollarSign, Target, Calendar, Plus, Trash2, Tag } from 'lucide-react';
 import { toast } from 'sonner';
-import { createCategory, deleteCategory, getCategories, updateProfile, exportUserData } from '@/app/actions/settings';
+import { createCategory, deleteCategory, getCategories, updateProfile } from '@/app/actions/settings';
+import { DataExport } from '@/components/settings/DataExport';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -153,43 +154,6 @@ export default function SettingsPage() {
       toast.error(t('settings.saveFailed') || 'Failed to save settings');
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleExportData() {
-    try {
-      // Use server action to fetch data (handles auth properly)
-      const result = await exportUserData();
-
-      if (!result.success || !result.data) {
-        toast.error(result.error || t('settings.exportError') || 'Export failed');
-        return;
-      }
-
-      const exportData = {
-        exportDate: new Date().toISOString(),
-        profile: result.data.profile,
-        accounts: result.data.accounts,
-        transactions: result.data.transactions,
-        categories: result.data.categories,
-      };
-
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: 'application/json',
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `mdj-export-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast.success(t('settings.exportSuccess') || 'Data exported successfully');
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error(t('common.somethingWentWrong'));
     }
   }
 
@@ -403,32 +367,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Data Management Group */}
-      <div className="space-y-2">
-        <p className="section-header">{t('settings.dataManagement')}</p>
-        <div className="settings-group">
-          <div className="p-5 space-y-4">
-            {/* Section Header with Icon */}
-            <div className="flex items-center gap-3">
-              <div className="icon-container-sm bg-emerald-500/10">
-                <Download className="h-4 w-4 text-emerald-500" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">{t('settings.exportData')}</p>
-              </div>
-            </div>
-
-            {/* Export Button */}
-            <Button
-              onClick={handleExportData}
-              variant="outline"
-              className="w-full h-12 rounded-xl"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              {t('settings.exportData')}
-            </Button>
-          </div>
-        </div>
-      </div>
+      <DataExport />
 
       {/* App Info */}
       <div className="py-6 text-center space-y-1">
