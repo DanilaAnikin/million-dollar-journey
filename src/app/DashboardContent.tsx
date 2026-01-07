@@ -49,14 +49,17 @@ export function DashboardContent() {
 
   const supabase = createClient();
 
+  // Get net worth from calculation (in USD, will be converted by NetWorthCard using global currency)
+  const netWorthUSD = calculation?.currentNetWorthUSD ?? 0;
+
   // 3. ALL useMemo calculations - MUST come before conditional returns
   // Filter historical data based on selected time range
   const filteredHistoricalData = useMemo(() => {
     if (!historicalNetWorth || historicalNetWorth.length === 0) {
       return [];
     }
-    return filterDataByRange(historicalNetWorth, selectedRange);
-  }, [historicalNetWorth, selectedRange]);
+    return filterDataByRange(historicalNetWorth, selectedRange, netWorthUSD, allTransactions);
+  }, [historicalNetWorth, selectedRange, netWorthUSD, allTransactions]);
 
   // Calculate performance metrics for the selected period
   const performanceData = useMemo(() => {
@@ -65,9 +68,6 @@ export function DashboardContent() {
     }
     return getPeriodChange(filteredHistoricalData);
   }, [filteredHistoricalData]);
-
-  // Get net worth from calculation (in USD, will be converted by NetWorthCard using global currency)
-  const netWorthUSD = calculation?.currentNetWorthUSD ?? 0;
 
   // 4. ALL useEffect calls
   useEffect(() => {
@@ -221,7 +221,7 @@ export function DashboardContent() {
       </div>
 
       {/* Net Worth History Chart - Full width */}
-      <div className="rounded-2xl border bg-card p-4 md:p-6">
+      <div className="rounded-2xl border bg-card p-4 md:p-6 overflow-hidden">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-3 rounded-xl bg-primary/10">
             <TrendingUp className="h-5 w-5 text-primary" />
@@ -229,9 +229,8 @@ export function DashboardContent() {
           <span className="font-semibold">{t('dashboard.netWorthHistory')}</span>
         </div>
         <NetWorthChart
-          className="h-[300px]"
           goalAmount={targetAmount}
-          data={historicalNetWorth.length > 0 ? historicalNetWorth : undefined}
+          data={filteredHistoricalData.length > 0 ? filteredHistoricalData : undefined}
           selectedRange={selectedRange}
           onRangeChange={setSelectedRange}
         />

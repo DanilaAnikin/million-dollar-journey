@@ -277,60 +277,272 @@ export function getDateRangeForLastNMonths(months: number = 12): {
 }
 
 /**
+ * Calculates daily net worth history using reverse walk from current value.
+ *
+ * @param currentNetWorth - Current net worth value
+ * @param transactions - All transactions
+ * @param daysBack - Number of days to calculate
+ * @returns Array of daily NetWorthDataPoint objects
+ */
+export function calculateDailyNetWorth(
+  currentNetWorth: number,
+  transactions: Transaction[],
+  daysBack: number
+): NetWorthDataPoint[] {
+  // Generate array of the last N days (in reverse chronological order initially)
+  const daysArray = generateLastNDays(daysBack);
+
+  // Find the earliest transaction date to fix ghost money bug
+  const earliestTransactionDate = findEarliestTransactionDate(transactions);
+  const earliestDateKey = earliestTransactionDate
+    ? formatDateKey(earliestTransactionDate)
+    : null;
+
+  // Create a map to store net worth for each day
+  const netWorthByDay = new Map<string, number>();
+
+  // Start with current balance
+  let runningBalance = currentNetWorth;
+
+  // Group transactions by day for efficient lookup
+  const transactionsByDay = groupTransactionsByDay(transactions);
+
+  // Walk backwards through each day
+  for (const dayData of daysArray) {
+    const { key, label } = dayData;
+
+    // Get all transactions for this day
+    const dayTransactions = transactionsByDay.get(key) || [];
+
+    // Reverse the effect of each transaction
+    for (const transaction of dayTransactions) {
+      runningBalance = reverseTransactionEffect(runningBalance, transaction);
+    }
+
+    // Store the net worth snapshot for this day
+    netWorthByDay.set(label, runningBalance);
+  }
+
+  // The current day should show the current net worth
+  const currentDayLabel = daysArray[0].label;
+  netWorthByDay.set(currentDayLabel, currentNetWorth);
+
+  // Convert to array format and reverse to chronological order (oldest first)
+  const result: NetWorthDataPoint[] = daysArray
+    .map(({ key, label, displayLabel }) => {
+      // Ghost Money Bug Fix: Force $0 for days before the earliest transaction
+      let netWorth = netWorthByDay.get(label) || 0;
+
+      if (earliestDateKey && key < earliestDateKey) {
+        netWorth = 0;
+      }
+
+      return {
+        month: displayLabel, // e.g., "Jan 15", "Jan 16"
+        netWorth: Math.round(netWorth * 100) / 100,
+        date: key, // Store the full date key (YYYY-MM-DD) for filtering
+      };
+    })
+    .reverse();
+
+  return result;
+}
+
+/**
+ * Generates an array of the last N days with their keys and labels.
+ * Returns in reverse chronological order (current day first).
+ *
+ * @param count - Number of days to generate
+ * @returns Array of day data with key (YYYY-MM-DD), label (internal key), and displayLabel (formatted)
+ */
+function generateLastNDays(count: number): Array<{ key: string; label: string; displayLabel: string }> {
+  const days: Array<{ key: string; label: string; displayLabel: string }> = [];
+  const now = new Date();
+
+  const monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  for (let i = 0; i < count; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const key = formatDateKey(date);
+    const label = key; // Use the key as the label for consistency
+    const displayLabel = `${monthNames[date.getMonth()]} ${date.getDate()}`;
+
+    days.push({ key, label, displayLabel });
+  }
+
+  return days;
+}
+
+/**
+ * Formats a date as YYYY-MM-DD.
+ */
+function formatDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Groups transactions by their day (YYYY-MM-DD format).
+ *
+ * @param transactions - Array of transactions
+ * @returns Map with day key -> array of transactions
+ */
+function groupTransactionsByDay(
+  transactions: Transaction[]
+): Map<string, Transaction[]> {
+  const grouped = new Map<string, Transaction[]>();
+
+  for (const transaction of transactions) {
+    // Parse the transaction date
+    const date = new Date(transaction.transaction_date);
+    const key = formatDateKey(date);
+
+    const existing = grouped.get(key) || [];
+    existing.push(transaction);
+    grouped.set(key, existing);
+  }
+
+  return grouped;
+}
+
+/**
+ * Aggregates monthly data into yearly data points (uses December value for each year)
+ */
+function aggregateToYearly(monthlyData: NetWorthDataPoint[]): NetWorthDataPoint[] {
+  if (!monthlyData || monthlyData.length === 0) {
+    return [];
+  }
+
+  // Group data by year
+  const yearlyMap = new Map<number, NetWorthDataPoint>();
+
+  for (const dataPoint of monthlyData) {
+    // Extract year from the date field (YYYY-MM format)
+    const year = dataPoint.date ? parseInt(dataPoint.date.split('-')[0]) : new Date().getFullYear();
+
+    // Keep the latest data point for each year (December or the last available month)
+    const existing = yearlyMap.get(year);
+    if (!existing || (dataPoint.date && (!existing.date || dataPoint.date > existing.date))) {
+      yearlyMap.set(year, {
+        month: year.toString(), // Display label is just the year
+        netWorth: dataPoint.netWorth,
+        date: `${year}-12`, // Store as year-month for consistency
+      });
+    }
+  }
+
+  // Convert to array and sort by year
+  return Array.from(yearlyMap.values()).sort((a, b) => {
+    const yearA = parseInt(a.month);
+    const yearB = parseInt(b.month);
+    return yearA - yearB;
+  });
+}
+
+/**
+ * Calculates the number of days between two dates.
+ */
+function calculateDaysDifference(date1: Date, date2: Date): number {
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const diff = Math.abs(date2.getTime() - date1.getTime());
+  return Math.floor(diff / msPerDay);
+}
+
+/**
+ * Finds the earliest date from the data array.
+ */
+function findEarliestDate(data: NetWorthDataPoint[]): Date {
+  if (!data || data.length === 0) {
+    return new Date();
+  }
+
+  const firstPoint = data[0];
+  if (firstPoint.date) {
+    return new Date(firstPoint.date);
+  }
+
+  return new Date();
+}
+
+/**
  * Filters historical net worth data based on the selected time range with adaptive granularity.
  *
  * Adaptive Granularity Rules:
- * - 1W, 1M: Daily data points (all points shown within range)
- * - 1Y: Weekly/Monthly points (sample every ~1 month for monthly data)
- * - 10Y, ALL > 5 years: Quarterly points (sample every ~3 months)
- * - ALL < 1 year: Weekly/Monthly points (all points shown)
+ * - 1W: Daily data points for last 7 days
+ * - 1M: Daily data points for last 30 days
+ * - 1Y: Monthly data points for last 12 months
+ * - 10Y: Yearly data points for last 10 years
+ * - ALL: Adaptive based on duration (daily < 1 year, monthly 1-3 years, yearly > 3 years)
  *
  * @param data - Array of net worth data points (in chronological order)
  * @param range - Time range to filter by ('1W', '1M', '1Y', '10Y', 'ALL')
+ * @param currentNetWorth - Current net worth value (needed for daily calculations)
+ * @param transactions - All transactions (needed for daily calculations)
  * @returns Filtered array of data points with adaptive sampling
  */
 export function filterDataByRange(
   data: NetWorthDataPoint[],
-  range: TimeRange
+  range: TimeRange,
+  currentNetWorth?: number,
+  transactions?: Transaction[]
 ): NetWorthDataPoint[] {
   if (!data || data.length === 0) {
     return [];
   }
 
-  if (range === 'ALL') {
-    // For ALL, apply adaptive granularity based on total data span
-    const totalMonths = data.length;
+  // For 1W: Need daily data for last 7 days
+  if (range === '1W') {
+    if (currentNetWorth !== undefined && transactions) {
+      return calculateDailyNetWorth(currentNetWorth, transactions, 7);
+    }
+    return data.slice(-1); // fallback
+  }
 
-    if (totalMonths > 60) {
-      // More than 5 years: show quarterly data points (every 3 months)
-      return sampleDataPointsByInterval(data, 3);
-    } else if (totalMonths > 12) {
-      // 1-5 years: show monthly data points (every month)
+  // For 1M: Need daily data for last 30 days
+  if (range === '1M') {
+    if (currentNetWorth !== undefined && transactions) {
+      return calculateDailyNetWorth(currentNetWorth, transactions, 30);
+    }
+    return data.slice(-1);
+  }
+
+  // For 1Y: Monthly data (existing)
+  if (range === '1Y') {
+    return data.slice(-12);
+  }
+
+  // For 10Y: Yearly data
+  if (range === '10Y') {
+    const filtered = data.slice(-120); // Last 10 years of monthly data
+    return aggregateToYearly(filtered);
+  }
+
+  // For ALL: Adaptive
+  if (range === 'ALL') {
+    const firstDate = findEarliestDate(data);
+    const now = new Date();
+    const daysDiff = calculateDaysDifference(firstDate, now);
+
+    if (daysDiff < 365) {
+      // Less than 1 year: Daily
+      if (currentNetWorth !== undefined && transactions) {
+        // Ensure we show at least 7 days for meaningful chart
+        const daysToShow = Math.max(daysDiff, 7);
+        return calculateDailyNetWorth(currentNetWorth, transactions, daysToShow);
+      }
+      return data; // fallback to monthly
+    } else if (daysDiff < 365 * 3) {
+      // 1-3 years: Monthly
       return data;
     } else {
-      // Less than 1 year: show all data points
-      return data;
+      // More than 3 years: Yearly
+      return aggregateToYearly(data);
     }
   }
 
-  // Filter by time range and apply appropriate granularity
-  const dataPointsConfig: Record<TimeRange, { count: number; samplingInterval: number }> = {
-    '1W': { count: 1, samplingInterval: 1 }, // Show 1 data point (latest month)
-    '1M': { count: 1, samplingInterval: 1 }, // Show 1 month
-    '1Y': { count: 12, samplingInterval: 1 }, // Show 12 months, all points
-    '10Y': { count: Math.min(120, data.length), samplingInterval: 3 }, // 10 years, quarterly
-    'ALL': { count: data.length, samplingInterval: 1 },
-  };
-
-  const config = dataPointsConfig[range];
-  const filtered = data.slice(-config.count);
-
-  // Apply sampling if needed
-  if (config.samplingInterval > 1) {
-    return sampleDataPointsByInterval(filtered, config.samplingInterval);
-  }
-
-  return filtered;
+  return data;
 }
 
 /**

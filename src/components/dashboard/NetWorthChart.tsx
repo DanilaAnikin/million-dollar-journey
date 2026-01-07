@@ -15,6 +15,16 @@ import { useCurrency } from '@/lib/contexts/CurrencyContext';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Currency } from '@/types/database';
 
+/**
+ * Data point for the net worth chart.
+ *
+ * The 'month' field should contain date labels formatted appropriately for the time range:
+ * - Daily data (1W, 1M): "Jan 15", "Jan 16", etc.
+ * - Monthly data (1Y): "Jan", "Feb", "Mar", etc.
+ * - Yearly data (10Y, ALL): "2023", "2024", etc.
+ *
+ * The analytics service should provide data with these appropriate labels.
+ */
 export interface NetWorthDataPoint {
   month: string;
   netWorth: number;
@@ -68,6 +78,57 @@ function formatYAxisValue(value: number): string {
   return `$${value}`;
 }
 
+// Determine the appropriate date format based on selected range
+type DateFormatType = 'daily' | 'monthly' | 'yearly' | 'adaptive';
+
+function getDateFormatType(range: TimeRange, dataLength: number): DateFormatType {
+  switch (range) {
+    case '1W':
+    case '1M':
+      return 'daily';
+    case '1Y':
+      return 'monthly';
+    case '10Y':
+      return 'yearly';
+    case 'ALL':
+      // Adaptive - check data length to determine best format
+      if (dataLength <= 12) {
+        return 'monthly';
+      } else if (dataLength <= 52) {
+        return 'monthly';
+      } else {
+        return 'yearly';
+      }
+  }
+}
+
+// Calculate tick interval based on data length and range
+function getTickInterval(dataLength: number, range: TimeRange): number | 'preserveStartEnd' {
+  if (range === '1W') {
+    return 0; // Show all 7 days
+  }
+  if (range === '1M') {
+    // For 30 days, show ~6 labels
+    return Math.max(Math.floor(dataLength / 6), 1);
+  }
+  if (range === '1Y') {
+    // Show all 12 months or every other month if more data
+    return dataLength > 12 ? 1 : 0;
+  }
+  if (range === '10Y') {
+    // Show every year or every other year
+    return dataLength > 10 ? Math.floor(dataLength / 10) : 0;
+  }
+  // For ALL, adaptive based on data length
+  if (dataLength > 30) {
+    return Math.floor(dataLength / 8);
+  }
+  if (dataLength > 12) {
+    return Math.floor(dataLength / 6);
+  }
+  return 0;
+}
+
 // Custom tooltip component with dark mode support
 function CustomTooltip({
   active,
@@ -106,25 +167,9 @@ export function NetWorthChart({
   const selectedRange = externalSelectedRange ?? internalSelectedRange;
   const handleRangeChange = onRangeChange ?? setInternalSelectedRange;
 
-  const chartData = data ?? generateMockData();
-
-  // Filter data based on selected time range
-  const filteredData = useMemo(() => {
-    if (selectedRange === 'ALL') {
-      return chartData;
-    }
-
-    const rangeMap: Record<TimeRange, number> = {
-      '1W': 0.25, // Approximately 1 week in months
-      '1M': 1,
-      '1Y': 12,
-      '10Y': 120,
-      'ALL': chartData.length,
-    };
-
-    const monthsToShow = rangeMap[selectedRange];
-    return chartData.slice(-Math.ceil(monthsToShow));
-  }, [chartData, selectedRange]);
+  // Data is pre-filtered by DashboardContent using filterDataByRange from analytics
+  // which handles daily/monthly/yearly granularity based on the selected range
+  const filteredData = data ?? generateMockData();
 
   // Calculate performance metrics
   const performanceData = useMemo(() => {
@@ -149,6 +194,10 @@ export function NetWorthChart({
   const yAxisMax = Math.max(maxDataValue, goalAmount) * 1.1;
 
   const isPositiveChange = performanceData.absolute >= 0;
+
+  // Determine date format and tick interval based on selected range
+  const dateFormatType = getDateFormatType(selectedRange, filteredData.length);
+  const tickInterval = getTickInterval(filteredData.length, selectedRange);
 
   return (
     <div className={className}>
@@ -189,8 +238,8 @@ export function NetWorthChart({
         </Tabs>
       </div>
 
-      {/* Chart */}
-      <div className="w-full h-[300px]">
+      {/* Chart Container - MUST have fixed height */}
+      <div className="w-full h-[300px] overflow-hidden pb-4">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={filteredData}
@@ -217,6 +266,12 @@ export function NetWorthChart({
               tick={{ fontSize: 12 }}
               className="text-muted-foreground"
               dy={10}
+              interval={tickInterval}
+              tickFormatter={(value) => {
+                // The data should already have appropriate labels
+                // But we can add formatting logic here if needed
+                return value;
+              }}
             />
 
             <YAxis
