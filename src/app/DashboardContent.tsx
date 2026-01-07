@@ -31,8 +31,11 @@ import { useCurrency } from '@/lib/contexts/CurrencyContext';
 import type { Account, AccountCategory, Transaction, Profile, RecurringTransaction } from '@/types/database';
 
 export function DashboardContent() {
+  // 1. ALL useContext calls
   const { t } = useLanguage();
   const { rates } = useCurrency();
+
+  // 2. ALL useState declarations
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
@@ -46,10 +49,32 @@ export function DashboardContent() {
 
   const supabase = createClient();
 
+  // 3. ALL useMemo calculations - MUST come before conditional returns
+  // Filter historical data based on selected time range
+  const filteredHistoricalData = useMemo(() => {
+    if (!historicalNetWorth || historicalNetWorth.length === 0) {
+      return [];
+    }
+    return filterDataByRange(historicalNetWorth, selectedRange);
+  }, [historicalNetWorth, selectedRange]);
+
+  // Calculate performance metrics for the selected period
+  const performanceData = useMemo(() => {
+    if (!filteredHistoricalData || filteredHistoricalData.length === 0) {
+      return { absolute: 0, percentage: 0 };
+    }
+    return getPeriodChange(filteredHistoricalData);
+  }, [filteredHistoricalData]);
+
+  // Get net worth from calculation (in USD, will be converted by NetWorthCard using global currency)
+  const netWorthUSD = calculation?.currentNetWorthUSD ?? 0;
+
+  // 4. ALL useEffect calls
   useEffect(() => {
     loadData();
   }, []);
 
+  // Helper functions
   async function loadData() {
     try {
       // Get current user
@@ -153,6 +178,9 @@ export function DashboardContent() {
     }
   }
 
+  // ===== NO MORE HOOKS BELOW THIS LINE =====
+
+  // 5. Conditional returns (loading states, error states, etc.)
   if (loading) {
     return (
       <div className="p-4 lg:p-6 flex items-center justify-center min-h-[50vh]">
@@ -167,19 +195,6 @@ export function DashboardContent() {
   if (accounts.length === 0) {
     return <EmptyState />;
   }
-
-  // Get net worth from calculation (in USD, will be converted by NetWorthCard using global currency)
-  const netWorthUSD = calculation?.currentNetWorthUSD ?? 0;
-
-  // Filter historical data based on selected time range
-  const filteredHistoricalData = useMemo(() => {
-    return filterDataByRange(historicalNetWorth, selectedRange);
-  }, [historicalNetWorth, selectedRange]);
-
-  // Calculate performance metrics for the selected period
-  const performanceData = useMemo(() => {
-    return getPeriodChange(filteredHistoricalData);
-  }, [filteredHistoricalData]);
 
   return (
     <div className="p-4 lg:p-6 space-y-6">
