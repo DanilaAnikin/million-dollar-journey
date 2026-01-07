@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowUpRight, ArrowDownRight, ArrowLeftRight, RefreshCw, ArrowRight, Receipt, Trash2, Loader2 } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, ArrowLeftRight, RefreshCw, ArrowRight, Receipt, Trash2, Loader2, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useCurrency } from '@/lib/contexts/CurrencyContext';
 import { formatDate } from '@/lib/utils';
 import { deleteTransaction } from '@/app/actions/transactions';
+import { TransactionModal } from '@/components/transactions/TransactionModal';
 import type { Transaction, Currency } from '@/types/database';
 
 interface RecentTransactionsProps {
@@ -36,6 +37,7 @@ export function RecentTransactions({ transactions, onTransactionDeleted }: Recen
   const { t } = useLanguage();
   const { currency: globalCurrency, convert, formatAmount } = useCurrency();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm(t('transactions.confirmDelete'))) {
@@ -148,6 +150,14 @@ export function RecentTransactions({ transactions, onTransactionDeleted }: Recen
                       </div>
                     )}
                   </div>
+                  {/* Edit button */}
+                  <button
+                    onClick={() => setEditingTransaction(tx)}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-primary transition-all"
+                    title={t('common.edit' as any) || 'Edit'}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
                   {/* Delete button */}
                   <button
                     onClick={() => handleDelete(tx.id)}
@@ -167,6 +177,20 @@ export function RecentTransactions({ transactions, onTransactionDeleted }: Recen
           })}
         </div>
       </div>
+
+      {/* Edit Transaction Modal */}
+      {editingTransaction && (
+        <TransactionModal
+          isOpen={true}
+          onClose={() => setEditingTransaction(null)}
+          onSuccess={() => {
+            setEditingTransaction(null);
+            onTransactionDeleted?.();
+          }}
+          mode="edit"
+          initialData={editingTransaction}
+        />
+      )}
     </div>
   );
 }

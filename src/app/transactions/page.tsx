@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowUpRight, ArrowDownRight, ArrowLeftRight, RefreshCw, Receipt, Loader2, Plus, Trash2 } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, ArrowLeftRight, RefreshCw, Receipt, Loader2, Plus, Trash2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Select,
@@ -15,7 +15,7 @@ import { useCurrency } from '@/lib/contexts/CurrencyContext';
 import { formatDate } from '@/lib/utils';
 import { getTransactions, getAccountsForTransactions, deleteTransaction } from '@/app/actions/transactions';
 import type { Transaction, Account, TransactionType, Currency } from '@/types/database';
-import { NewTransactionModal } from '@/components/transactions/NewTransactionModal';
+import { TransactionModal } from '@/components/transactions/TransactionModal';
 
 const typeIcons = {
   income: ArrowUpRight,
@@ -60,6 +60,7 @@ export default function TransactionsPage() {
   const [selectedCurrency, setSelectedCurrency] = useState<string>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   useEffect(() => {
     loadData();
@@ -276,6 +277,13 @@ export default function TransactionsPage() {
                           )}
                         </div>
                         <button
+                          onClick={() => setEditingTransaction(tx)}
+                          className="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-primary transition-all"
+                          title={t('common.edit' as any) || 'Edit'}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => handleDelete(tx.id)}
                           disabled={deletingId === tx.id}
                           className="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-destructive transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -306,15 +314,30 @@ export default function TransactionsPage() {
         <Plus className="size-7" />
       </button>
 
-      {/* New Transaction Modal */}
-      <NewTransactionModal
+      {/* Create Transaction Modal */}
+      <TransactionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={() => {
           setIsModalOpen(false);
           loadData();
         }}
+        mode="create"
       />
+
+      {/* Edit Transaction Modal */}
+      {editingTransaction && (
+        <TransactionModal
+          isOpen={true}
+          onClose={() => setEditingTransaction(null)}
+          onSuccess={() => {
+            setEditingTransaction(null);
+            loadData();
+          }}
+          mode="edit"
+          initialData={editingTransaction}
+        />
+      )}
     </div>
   );
 }

@@ -7,19 +7,21 @@ import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useCurrency } from '@/lib/contexts/CurrencyContext';
 import { createClient } from '@/lib/supabase/client';
-import { getAccountsForTransactions, addTransaction, addTransfer, addAdjustment } from '@/app/actions/transactions';
-import type { Account, TransactionType, Currency } from '@/types/database';
+import { getAccountsForTransactions, addTransaction, addTransfer, addAdjustment, updateTransaction } from '@/app/actions/transactions';
+import type { Account, Transaction, TransactionType, Currency } from '@/types/database';
 
-interface NewTransactionModalProps {
+interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  initialData?: Transaction;
+  mode: 'create' | 'edit';
 }
 
 // Available currencies
 const AVAILABLE_CURRENCIES: Currency[] = ['USD', 'EUR', 'GBP', 'CZK', 'JPY', 'CHF', 'CAD', 'AUD'];
 
-export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransactionModalProps) {
+export function TransactionModal({ isOpen, onClose, onSuccess, initialData, mode }: TransactionModalProps) {
   const { t } = useLanguage();
   const { currency: globalCurrency } = useCurrency();
   const modalRef = useRef<HTMLDivElement>(null);
@@ -50,6 +52,38 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
   const [loading, setLoading] = useState(false);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
 
+  // Reset form to defaults
+  const resetFormToDefaults = useCallback(() => {
+    setType('expense');
+    setAmount('');
+    setDescription('');
+    setDate(new Date().toISOString().split('T')[0]);
+    setToAccountId('');
+    if (AVAILABLE_CURRENCIES.includes(globalCurrency)) {
+      setSelectedCurrency(globalCurrency);
+    }
+    initialCurrencySynced.current = false;
+    // Close all dropdowns
+    setIsCurrencyOpen(false);
+    setIsAccountOpen(false);
+    setIsFromAccountOpen(false);
+    setIsToAccountOpen(false);
+  }, [globalCurrency]);
+
+  // Populate form with initialData for edit mode
+  const populateFormFromTransaction = useCallback((tx: Transaction) => {
+    setType(tx.type);
+    // For display, always show absolute value
+    setAmount(Math.abs(tx.amount).toString());
+    setSelectedCurrency(tx.currency);
+    setAccountId(tx.account_id);
+    setDescription(tx.description || '');
+    setDate(tx.transaction_date.split('T')[0]);
+    if (tx.transfer_to_account_id) {
+      setToAccountId(tx.transfer_to_account_id);
+    }
+  }, []);
+
   // Load accounts on mount
   useEffect(() => {
     if (isOpen) {
@@ -57,36 +91,33 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
     }
   }, [isOpen]);
 
-  // Sync currency with global preference on initial open
+  // Handle form initialization based on mode
   useEffect(() => {
-    if (isOpen && globalCurrency && !initialCurrencySynced.current) {
-      if (AVAILABLE_CURRENCIES.includes(globalCurrency)) {
-        setSelectedCurrency(globalCurrency);
+    if (isOpen) {
+      if (mode === 'edit' && initialData) {
+        populateFormFromTransaction(initialData);
+      } else if (mode === 'create') {
+        // For create mode, sync currency with global preference
+        if (globalCurrency && !initialCurrencySynced.current) {
+          if (AVAILABLE_CURRENCIES.includes(globalCurrency)) {
+            setSelectedCurrency(globalCurrency);
+          }
+          initialCurrencySynced.current = true;
+        }
       }
-      initialCurrencySynced.current = true;
     }
-  }, [isOpen, globalCurrency]);
+  }, [isOpen, mode, initialData, globalCurrency, populateFormFromTransaction]);
 
   // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
       // Reset after animation completes
       const timer = setTimeout(() => {
-        setType('expense');
-        setAmount('');
-        setDescription('');
-        setDate(new Date().toISOString().split('T')[0]);
-        setToAccountId('');
-        initialCurrencySynced.current = false;
-        // Close all dropdowns
-        setIsCurrencyOpen(false);
-        setIsAccountOpen(false);
-        setIsFromAccountOpen(false);
-        setIsToAccountOpen(false);
+        resetFormToDefaults();
       }, 200);
       return () => clearTimeout(timer);
     }
-  }, [isOpen]);
+  }, [isOpen, resetFormToDefaults]);
 
   // Handle click outside to close dropdowns
   useEffect(() => {
@@ -140,7 +171,8 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
     try {
       const data = await getAccountsForTransactions();
       setAccounts(data);
-      if (data.length > 0 && !accountId) {
+      // Only set default account in create mode if not already set
+      if (data.length > 0 && !accountId && mode === 'create') {
         setAccountId(data[0].id);
       }
     } catch (error) {
@@ -170,41 +202,64 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
         return;
       }
 
-      if (type === 'transfer') {
-        if (!toAccountId || toAccountId === accountId) {
-          toast.error(t('validation.differentAccounts'));
-          setLoading(false);
-          return;
-        }
-        await addTransfer({
-          userId: user.id,
-          fromAccountId: accountId,
-          toAccountId,
+      if (mode === 'edit' && initialData) {
+        // Edit mode - update existing transaction
+        const result = await updateTransaction(initialData.id, {
+          accountId,
+          type,
           amount: numAmount,
           currency: selectedCurrency,
           description,
+          date,
+          toAccountId: type === 'transfer' ? toAccountId : undefined,
         });
-      } else if (type === 'adjustment') {
-        await addAdjustment(user.id, accountId, numAmount, selectedCurrency, description);
+
+        if (result.error) {
+          toast.error(result.error);
+          setLoading(false);
+          return;
+        }
+
+        toast.success(t('transactions.updatedSuccess'));
       } else {
-        const finalAmount = type === 'expense' ? -Math.abs(numAmount) : Math.abs(numAmount);
-        await addTransaction({
-          userId: user.id,
-          accountId,
-          amount: finalAmount,
-          currency: selectedCurrency,
-          transactionDate: new Date(date),
-          description,
-          type,
-        });
+        // Create mode - add new transaction
+        if (type === 'transfer') {
+          if (!toAccountId || toAccountId === accountId) {
+            toast.error(t('validation.differentAccounts'));
+            setLoading(false);
+            return;
+          }
+          await addTransfer({
+            userId: user.id,
+            fromAccountId: accountId,
+            toAccountId,
+            amount: numAmount,
+            currency: selectedCurrency,
+            description,
+          });
+        } else if (type === 'adjustment') {
+          await addAdjustment(user.id, accountId, numAmount, selectedCurrency, description);
+        } else {
+          const finalAmount = type === 'expense' ? -Math.abs(numAmount) : Math.abs(numAmount);
+          await addTransaction({
+            userId: user.id,
+            accountId,
+            amount: finalAmount,
+            currency: selectedCurrency,
+            transactionDate: new Date(date),
+            description,
+            type,
+          });
+        }
+
+        toast.success(t('transactions.addedSuccess'));
       }
 
-      toast.success(t('transactions.addedSuccess'));
       onSuccess?.();
       onClose();
     } catch (error) {
-      console.error('Error adding transaction:', error);
-      toast.error(t('transactions.addFailed'));
+      console.error('Error saving transaction:', error);
+      toast.error(mode === 'edit' ? t('transactions.updateFailed') : t('transactions.addFailed'));
     } finally {
       setLoading(false);
     }
@@ -212,6 +267,12 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
 
   // Validation
   const isValid = amount && parseFloat(amount) > 0 && accountId && (type !== 'transfer' || toAccountId);
+
+  // Modal title based on mode
+  const modalTitle = mode === 'edit' ? t('transactions.editTransaction') : t('transactions.addTransaction');
+
+  // Submit button text based on mode
+  const submitButtonText = mode === 'edit' ? t('transactions.saveChanges') : t('transactions.saveTransaction');
 
   if (!isOpen) return null;
 
@@ -228,7 +289,7 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-            {t('transactions.addTransaction')}
+            {modalTitle}
           </h2>
           <button
             type="button"
@@ -549,7 +610,7 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
               {loading ? (
                 <Loader2 className="animate-spin mx-auto size-6" />
               ) : (
-                t('transactions.saveTransaction')
+                submitButtonText
               )}
             </button>
           </form>
@@ -558,3 +619,6 @@ export function NewTransactionModal({ isOpen, onClose, onSuccess }: NewTransacti
     </div>
   );
 }
+
+// Backward compatibility export
+export { TransactionModal as NewTransactionModal };

@@ -705,6 +705,22 @@ export const translations = {
     en: 'Failed to delete transaction',
     cs: 'Nepodařilo se smazat transakci',
   },
+  'transactions.editTransaction': {
+    en: 'Edit Transaction',
+    cs: 'Upravit transakci',
+  },
+  'transactions.saveChanges': {
+    en: 'Save Changes',
+    cs: 'Uložit změny',
+  },
+  'transactions.updatedSuccess': {
+    en: 'Transaction updated successfully!',
+    cs: 'Transakce byla úspěšně aktualizována!',
+  },
+  'transactions.updateFailed': {
+    en: 'Failed to update transaction',
+    cs: 'Nepodařilo se aktualizovat transakci',
+  },
 
   // Settings
   'settings.title': {

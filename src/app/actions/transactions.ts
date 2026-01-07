@@ -360,6 +360,230 @@ export async function addAdjustment(
   return result;
 }
 
+export interface UpdateTransactionInput {
+  accountId: string;
+  type: TransactionType;
+  amount: number;
+  currency: Currency;
+  description?: string;
+  date: string;
+  category?: string;
+  toAccountId?: string;
+}
+
+/**
+ * Update an existing transaction
+ * This will reverse the old transaction's effect and apply the new one
+ */
+export async function updateTransaction(
+  transactionId: string,
+  input: UpdateTransactionInput
+): Promise<{
+  data: Transaction | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+
+  // Get authenticated user with fallback
+  let userId = (await supabase.auth.getUser()).data.user?.id;
+  if (!userId) {
+    const { data: { session } } = await supabase.auth.getSession();
+    userId = session?.user?.id;
+  }
+
+  if (!userId) {
+    return { data: null, error: 'You must be logged in' };
+  }
+
+  // Fetch the original transaction
+  const { data: originalTx, error: fetchError } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('id', transactionId)
+    .eq('user_id', userId)
+    .single();
+
+  if (fetchError || !originalTx) {
+    return { data: null, error: 'Transaction not found' };
+  }
+
+  // Step 1: Reverse the original transaction's effect on balances
+  // This mirrors the logic in deleteTransaction
+  if (originalTx.type === 'transfer' && originalTx.transfer_to_account_id) {
+    // Reverse transfer: add back to source, subtract from destination
+    // Original createTransaction: source -= amount, dest += amount
+    // So to reverse: source += amount, dest -= amount
+    const { data: sourceAcc } = await supabase
+      .from('accounts')
+      .select('balance')
+      .eq('id', originalTx.account_id)
+      .single();
+
+    const { data: destAcc } = await supabase
+      .from('accounts')
+      .select('balance')
+      .eq('id', originalTx.transfer_to_account_id)
+      .single();
+
+    if (sourceAcc) {
+      // Original subtracted from source, so add it back
+      await supabase
+        .from('accounts')
+        .update({ balance: sourceAcc.balance + originalTx.amount })
+        .eq('id', originalTx.account_id);
+    }
+
+    if (destAcc) {
+      // Original added to destination, so subtract it
+      await supabase
+        .from('accounts')
+        .update({ balance: destAcc.balance - originalTx.amount })
+        .eq('id', originalTx.transfer_to_account_id);
+    }
+  } else if (originalTx.type === 'expense') {
+    // Original expense subtracted from balance, so add it back
+    const { data: account } = await supabase
+      .from('accounts')
+      .select('balance')
+      .eq('id', originalTx.account_id)
+      .single();
+
+    if (account) {
+      await supabase
+        .from('accounts')
+        .update({ balance: account.balance + originalTx.amount })
+        .eq('id', originalTx.account_id);
+    }
+  } else if (originalTx.type === 'income') {
+    // Original income added to balance, so subtract it
+    const { data: account } = await supabase
+      .from('accounts')
+      .select('balance')
+      .eq('id', originalTx.account_id)
+      .single();
+
+    if (account) {
+      await supabase
+        .from('accounts')
+        .update({ balance: account.balance - originalTx.amount })
+        .eq('id', originalTx.account_id);
+    }
+  } else {
+    // For adjustment/interest types - reverse the balance change
+    // These types add the amount directly, so subtract to reverse
+    const { data: account } = await supabase
+      .from('accounts')
+      .select('balance')
+      .eq('id', originalTx.account_id)
+      .single();
+
+    if (account) {
+      await supabase
+        .from('accounts')
+        .update({ balance: account.balance - originalTx.amount })
+        .eq('id', originalTx.account_id);
+    }
+  }
+
+  // Step 2: Apply the new transaction's effect on balances
+  if (input.type === 'transfer' && input.toAccountId) {
+    const { data: sourceAcc } = await supabase
+      .from('accounts')
+      .select('balance')
+      .eq('id', input.accountId)
+      .single();
+
+    const { data: destAcc } = await supabase
+      .from('accounts')
+      .select('balance')
+      .eq('id', input.toAccountId)
+      .single();
+
+    if (sourceAcc) {
+      await supabase
+        .from('accounts')
+        .update({ balance: sourceAcc.balance - input.amount })
+        .eq('id', input.accountId);
+    }
+
+    if (destAcc) {
+      await supabase
+        .from('accounts')
+        .update({ balance: destAcc.balance + input.amount })
+        .eq('id', input.toAccountId);
+    }
+  } else if (input.type === 'expense') {
+    const { data: acc } = await supabase
+      .from('accounts')
+      .select('balance')
+      .eq('id', input.accountId)
+      .single();
+
+    if (acc) {
+      await supabase
+        .from('accounts')
+        .update({ balance: acc.balance - input.amount })
+        .eq('id', input.accountId);
+    }
+  } else if (input.type === 'income') {
+    const { data: acc } = await supabase
+      .from('accounts')
+      .select('balance')
+      .eq('id', input.accountId)
+      .single();
+
+    if (acc) {
+      await supabase
+        .from('accounts')
+        .update({ balance: acc.balance + input.amount })
+        .eq('id', input.accountId);
+    }
+  } else {
+    // For adjustment/interest types - add the amount directly to balance
+    const { data: acc } = await supabase
+      .from('accounts')
+      .select('balance')
+      .eq('id', input.accountId)
+      .single();
+
+    if (acc) {
+      await supabase
+        .from('accounts')
+        .update({ balance: acc.balance + input.amount })
+        .eq('id', input.accountId);
+    }
+  }
+
+  // Step 3: Update the transaction record
+  const { data, error } = await supabase
+    .from('transactions')
+    .update({
+      account_id: input.accountId,
+      type: input.type,
+      amount: input.amount,
+      currency: input.currency,
+      description: input.description || null,
+      transaction_date: input.date,
+      category: input.category || null,
+      transfer_to_account_id: input.toAccountId || null,
+    })
+    .eq('id', transactionId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('updateTransaction: Update error', error);
+    return { data: null, error: error.message };
+  }
+
+  revalidatePath('/');
+  revalidatePath('/transactions');
+  revalidatePath('/accounts');
+
+  return { data, error: null };
+}
+
 /**
  * Delete a transaction and reverse its effect on the account balance
  */
