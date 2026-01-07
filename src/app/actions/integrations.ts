@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import type { Integration, IntegrationMapping, Currency } from '@/types/database';
+import { executeIntegrationSync } from '@/lib/services/integrations/sync-manager';
 
 /**
  * Validates API key and fetches external accounts (for Step 1 of wizard)
@@ -43,6 +44,7 @@ export async function validateAndFetchAccounts(provider: string, apiKey: string)
 
 /**
  * Sync integration - fetch fresh data from external API and update mapped accounts
+ * This is a Server Action wrapper around the core sync logic
  */
 export async function syncIntegration(integrationId: string): Promise<{
   success: boolean;
@@ -50,106 +52,27 @@ export async function syncIntegration(integrationId: string): Promise<{
   syncedAccounts?: number
 }> {
   try {
-    const supabase = await createClient();
+    // Call the core sync logic from the shared service
+    const result = await executeIntegrationSync(integrationId);
 
-    // 1. Get user session
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { success: false, error: 'Unauthorized' };
+    // Only revalidate if sync was successful
+    if (result.success) {
+      revalidatePath('/');
+      revalidatePath('/accounts');
+      revalidatePath('/automation');
     }
 
-    // 2. Fetch the integration with its credentials
-    const { data: integration, error: integrationError } = await supabase
-      .from('integrations')
-      .select('*')
-      .eq('id', integrationId)
-      .eq('user_id', user.id)
-      .single();
-
-    if (integrationError || !integration) {
-      console.error('Integration fetch error:', integrationError);
-      return { success: false, error: 'Integration not found' };
-    }
-
-    // 3. Fetch all mappings for this integration
-    const { data: mappings, error: mappingsError } = await supabase
-      .from('integration_mappings')
-      .select('*')
-      .eq('integration_id', integrationId);
-
-    if (mappingsError) {
-      console.error('Mappings fetch error:', mappingsError);
-      return { success: false, error: 'Failed to fetch integration mappings' };
-    }
-
-    // 4. Fetch fresh data from external API based on provider
-    let externalAccounts;
-    try {
-      switch (integration.provider) {
-        case 'trading212': {
-          const { fetchTrading212Accounts } = await import('@/lib/services/integrations/trading212');
-          externalAccounts = await fetchTrading212Accounts(integration.api_key);
-          break;
-        }
-        // Add other providers here
-        default:
-          return { success: false, error: `Unknown provider: ${integration.provider}` };
-      }
-    } catch (apiError) {
-      console.error('External API error:', apiError);
-      // Update integration status to error
-      await supabase
-        .from('integrations')
-        .update({
-          status: 'error',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', integrationId);
-
-      return { success: false, error: 'Failed to fetch data from external API' };
-    }
-
-    // 5. Update each mapped internal account with fresh balance
-    let successCount = 0;
-    for (const mapping of mappings || []) {
-      const externalAccount = externalAccounts.find((e: { id: string }) => e.id === mapping.external_account_id);
-      if (externalAccount) {
-        const { error: updateError } = await supabase
-          .from('accounts')
-          .update({
-            balance: externalAccount.balance,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', mapping.internal_account_id)
-          .eq('user_id', user.id);
-
-        if (!updateError) {
-          successCount++;
-        } else {
-          console.error('Account update error:', updateError);
-        }
-      }
-    }
-
-    // 6. Update last_synced_at on integration
-    await supabase
-      .from('integrations')
-      .update({
-        last_synced_at: new Date().toISOString(),
-        status: 'active',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', integrationId);
-
-    // Revalidate relevant paths
-    revalidatePath('/');
-    revalidatePath('/accounts');
-    revalidatePath('/automation');
-
-    return { success: true, syncedAccounts: successCount };
+    return {
+      success: result.success,
+      error: result.error,
+      syncedAccounts: result.syncedAccounts
+    };
   } catch (error) {
     console.error('syncIntegration: Unexpected error', error);
-    return { success: false, error: 'An unexpected error occurred during sync' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unexpected error occurred during sync'
+    };
   }
 }
 
