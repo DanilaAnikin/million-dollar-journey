@@ -546,36 +546,6 @@ export function filterDataByRange(
 }
 
 /**
- * Samples data points at a regular interval (e.g., every N months).
- * Always includes the first and last data points to preserve range boundaries.
- *
- * @param data - Array of data points to sample
- * @param interval - Sampling interval (e.g., 3 for quarterly)
- * @returns Sampled array of data points
- */
-function sampleDataPointsByInterval(
-  data: NetWorthDataPoint[],
-  interval: number
-): NetWorthDataPoint[] {
-  if (data.length <= 2 || interval <= 1) {
-    return data;
-  }
-
-  const sampled: NetWorthDataPoint[] = [data[0]]; // Always include first
-
-  for (let i = interval; i < data.length - 1; i += interval) {
-    sampled.push(data[i]);
-  }
-
-  // Always include last point
-  if (data.length > 1) {
-    sampled.push(data[data.length - 1]);
-  }
-
-  return sampled;
-}
-
-/**
  * Calculates the change in net worth over a period.
  *
  * Formula: percentage = (EndValue - StartValue) / |StartValue| * 100

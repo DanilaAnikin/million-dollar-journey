@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Save, DollarSign, Target, Calendar, Plus, Trash2, Tag } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,8 +17,7 @@ import {
 } from '@/components/ui/select';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { createClient } from '@/lib/supabase/client';
-import { calculateMonthlyContribution } from '@/lib/services/calculator';
-import type { Profile, Account, AccountCategory } from '@/types/database';
+import type { Profile, AccountCategory } from '@/types/database';
 
 export default function SettingsPage() {
   const { t } = useLanguage();
@@ -53,28 +52,12 @@ export default function SettingsPage() {
   const [newCategoryType, setNewCategoryType] = useState<'asset' | 'liability'>('asset');
   const [addingCategory, setAddingCategory] = useState(false);
 
-  async function loadCategories() {
+  const loadCategories = useCallback(async () => {
     const cats = await getCategories();
     setCategories(cats);
-  }
-
-  useEffect(() => {
-    loadProfile();
-    loadCategories();
   }, []);
 
-  // Sync state when profile loads from database
-  useEffect(() => {
-    if (profile?.target_date) {
-      const formatted = toInputDate(profile.target_date);
-      setTargetDate(formatted);
-    }
-    if (profile?.target_amount_usd !== undefined) {
-      setTargetAmount(profile.target_amount_usd);
-    }
-  }, [profile]); // Dependency on entire profile object, not just specific properties
-
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     try {
       const supabase = createClient();
 
@@ -88,7 +71,6 @@ export default function SettingsPage() {
       }
 
       if (!userData?.user?.id) {
-        console.warn('Settings: No authenticated user found, redirecting to login');
         router.push('/login');
         return;
       }
@@ -104,15 +86,29 @@ export default function SettingsPage() {
         // targetAmount and targetDate are synced via useEffect when profile changes
       } else if (queryError) {
         console.error('Settings: Error loading profile from DB:', queryError);
-      } else {
-        console.warn('Settings: No profile data returned from DB');
       }
     } catch (error) {
       console.error('Error loading profile:', error);
     } finally {
       setLoading(false);
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    loadProfile();
+    loadCategories();
+  }, [loadProfile, loadCategories]);
+
+  // Sync state when profile loads from database
+  useEffect(() => {
+    if (profile?.target_date) {
+      const formatted = toInputDate(profile.target_date);
+      setTargetDate(formatted);
+    }
+    if (profile?.target_amount_usd !== undefined) {
+      setTargetAmount(profile.target_amount_usd);
+    }
+  }, [profile]);
 
   async function handleSaveProfile(e?: React.MouseEvent<HTMLButtonElement>) {
     if (e) {
@@ -125,8 +121,7 @@ export default function SettingsPage() {
 
     try {
       // Ensure targetDate is properly formatted as YYYY-MM-DD string
-      // Cast to 'any' to allow the instanceof check regardless of the interface type
-      const rawDate = targetDate as any;
+      const rawDate = targetDate as unknown;
       const formattedDate = rawDate instanceof Date
         ? rawDate.toISOString().split('T')[0]
         : String(rawDate);
@@ -174,7 +169,7 @@ export default function SettingsPage() {
         setNewCategoryName('');
         await loadCategories();
       }
-    } catch (error) {
+    } catch {
       toast.error(t('settings.categoryCreateFailed'));
     } finally {
       setAddingCategory(false);
@@ -193,7 +188,7 @@ export default function SettingsPage() {
         toast.success(t('settings.categoryDeleted'));
         await loadCategories();
       }
-    } catch (error) {
+    } catch {
       toast.error(t('settings.categoryDeleteFailed'));
     }
   }
@@ -347,7 +342,7 @@ export default function SettingsPage() {
                     <div>
                       <p className="font-medium text-sm">{category.name}</p>
                       <p className="text-xs text-muted-foreground capitalize">
-                        {t(`category.${category.type}` as any)}
+                        {category.type === 'asset' ? t('category.asset') : t('category.liability')}
                       </p>
                     </div>
                   </div>

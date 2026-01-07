@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { ArrowUpRight, ArrowDownRight, ArrowLeftRight, RefreshCw, ArrowRight, Receipt, Trash2, Loader2, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -39,7 +39,8 @@ export function RecentTransactions({ transactions, onTransactionDeleted }: Recen
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
-  const handleDelete = async (id: string) => {
+  // Memoize handleDelete to prevent unnecessary re-renders of child components
+  const handleDelete = useCallback(async (id: string) => {
     if (!window.confirm(t('transactions.confirmDelete'))) {
       return;
     }
@@ -53,12 +54,15 @@ export function RecentTransactions({ transactions, onTransactionDeleted }: Recen
       } else {
         toast.error(result.error || t('transactions.deleteError'));
       }
-    } catch (error) {
+    } catch {
       toast.error(t('transactions.deleteError'));
     } finally {
       setDeletingId(null);
     }
-  };
+  }, [t, onTransactionDeleted]);
+
+  // Memoize the transactions slice to show only first 5
+  const displayedTransactions = useMemo(() => transactions.slice(0, 5), [transactions]);
 
   if (transactions.length === 0) {
     return (
@@ -103,7 +107,7 @@ export function RecentTransactions({ transactions, onTransactionDeleted }: Recen
       {/* Transaction List */}
       <div className="px-6 pb-6">
         <div className="space-y-1">
-          {transactions.slice(0, 5).map((tx, index) => {
+          {displayedTransactions.map((tx, index) => {
             const Icon = typeIcons[tx.type as keyof typeof typeIcons] || RefreshCw;
             const colorClass = typeColors[tx.type as keyof typeof typeColors] || 'text-gray-500 bg-gray-500/10';
             const isPositive = tx.amount > 0;
@@ -122,7 +126,7 @@ export function RecentTransactions({ transactions, onTransactionDeleted }: Recen
                   </div>
                   <div>
                     <p className="font-semibold text-sm">
-                      {tx.description || t(`transactionType.${tx.type}` as any)}
+                      {tx.description || tx.type}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formatDate(tx.transaction_date)}
@@ -134,7 +138,7 @@ export function RecentTransactions({ transactions, onTransactionDeleted }: Recen
                   <span className={`hidden sm:inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                     isPositive ? 'pill-income' : 'pill-expense'
                   }`}>
-                    {t(`transactionType.${tx.type}` as any)}
+                    {tx.type}
                   </span>
                   {/* Amount - show original currency */}
                   <div className="text-right">
@@ -154,7 +158,7 @@ export function RecentTransactions({ transactions, onTransactionDeleted }: Recen
                   <button
                     onClick={() => setEditingTransaction(tx)}
                     className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-primary transition-all"
-                    title={t('common.edit' as any) || 'Edit'}
+                    title="Edit"
                   >
                     <Pencil className="h-4 w-4" />
                   </button>

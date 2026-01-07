@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plus, TrendingUp, TrendingDown, Wallet, DollarSign } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, TrendingUp, TrendingDown, Wallet, DollarSign, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,11 +30,7 @@ export default function AccountsPage() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [selectedCurrency, setSelectedCurrency] = useState<'ALL' | Currency>('ALL');
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const result = await getAccounts();
 
@@ -57,10 +53,15 @@ export default function AccountsPage() {
       });
     } catch (error) {
       console.error('Error loading data:', error);
+      toast.error(t('common.somethingWentWrong'));
     } finally {
       setLoading(false);
     }
-  }
+  }, [t]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   async function handleSubmit(data: {
     name: string;
@@ -180,7 +181,10 @@ export default function AccountsPage() {
   if (loading) {
     return (
       <div className="p-4 lg:p-6 flex items-center justify-center min-h-[50vh]">
-        <p className="text-muted-foreground">{t('common.loading')}</p>
+        <div className="text-center space-y-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">{t('common.loading')}</p>
+        </div>
       </div>
     );
   }
@@ -199,7 +203,7 @@ export default function AccountsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
         {/* Net Worth Card - Primary metric */}
         <Card className="rounded-2xl md:col-span-3 lg:col-span-1 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
           <CardContent className="pt-6">

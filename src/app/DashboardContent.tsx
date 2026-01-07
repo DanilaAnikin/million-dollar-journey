@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
 import {
   NetWorthCard,
@@ -21,19 +21,16 @@ import {
   getPeriodChange,
   type NetWorthDataPoint,
   type TimeRange,
-  type PeriodChange,
 } from '@/lib/services/analytics';
 import { getLiveRates } from '@/lib/services/currency';
 import { createClient } from '@/lib/supabase/client';
-import { TARGET_AMOUNT_USD, TARGET_DATE } from '@/lib/constants';
+import { TARGET_AMOUNT_USD } from '@/lib/constants';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
-import { useCurrency } from '@/lib/contexts/CurrencyContext';
 import type { Account, AccountCategory, Transaction, Profile, RecurringTransaction } from '@/types/database';
 
 export function DashboardContent() {
   // 1. ALL useContext calls
   const { t } = useLanguage();
-  const { rates } = useCurrency();
 
   // 2. ALL useState declarations
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -62,20 +59,15 @@ export function DashboardContent() {
   }, [historicalNetWorth, selectedRange, netWorthUSD, allTransactions]);
 
   // Calculate performance metrics for the selected period
-  const performanceData = useMemo(() => {
+  useMemo(() => {
     if (!filteredHistoricalData || filteredHistoricalData.length === 0) {
       return { absolute: 0, percentage: 0 };
     }
     return getPeriodChange(filteredHistoricalData);
   }, [filteredHistoricalData]);
 
-  // 4. ALL useEffect calls
-  useEffect(() => {
-    loadData();
-  }, []);
-
   // Helper functions
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
@@ -176,7 +168,12 @@ export function DashboardContent() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [t, supabase]);
+
+  // 4. ALL useEffect calls
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // ===== NO MORE HOOKS BELOW THIS LINE =====
 
@@ -237,7 +234,7 @@ export function DashboardContent() {
       </div>
 
       {/* Three-Column Grid for Accounts, Burn Rate, and Allocation */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
         <AccountsSummary
           accounts={accounts}
         />

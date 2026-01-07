@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ArrowUpRight, ArrowDownRight, ArrowLeftRight, RefreshCw, Receipt, Loader2, Plus, Trash2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -14,7 +14,7 @@ import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useCurrency } from '@/lib/contexts/CurrencyContext';
 import { formatDate } from '@/lib/utils';
 import { getTransactions, getAccountsForTransactions, deleteTransaction } from '@/app/actions/transactions';
-import type { Transaction, Account, TransactionType, Currency } from '@/types/database';
+import type { Transaction, Account, Currency } from '@/types/database';
 import { TransactionModal } from '@/components/transactions/TransactionModal';
 
 const typeIcons = {
@@ -62,11 +62,7 @@ export default function TransactionsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const [txData, accData] = await Promise.all([
         getTransactions(),
@@ -77,16 +73,15 @@ export default function TransactionsPage() {
       setAccounts(accData as Account[]);
     } catch (error) {
       console.error('Error loading data:', error);
+      toast.error(t('common.somethingWentWrong'));
     } finally {
       setLoading(false);
     }
-  }
+  }, [t]);
 
-  const getAccountName = (accountId: string | null) => {
-    if (!accountId) return t('common.unknown');
-    const account = accounts.find((a) => a.id === accountId);
-    return account?.name || t('common.unknown');
-  };
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm(t('transactions.confirmDelete'))) {
@@ -102,30 +97,40 @@ export default function TransactionsPage() {
       } else {
         toast.error(result.error || t('transactions.deleteError'));
       }
-    } catch (error) {
+    } catch {
       toast.error(t('transactions.deleteError'));
     } finally {
       setDeletingId(null);
     }
   };
 
-  // Extract distinct currencies from transactions
-  const availableCurrencies = ['ALL', ...Array.from(new Set(transactions.map((tx) => tx.currency)))];
+  // Extract distinct currencies from transactions - memoized to avoid recalculation
+  const availableCurrencies = useMemo(() =>
+    ['ALL', ...Array.from(new Set(transactions.map((tx) => tx.currency)))],
+    [transactions]
+  );
 
-  const filteredTransactions = transactions.filter((tx) => {
-    if (filterType !== 'all' && tx.type !== filterType) return false;
-    if (filterAccount !== 'all' && tx.account_id !== filterAccount) return false;
-    if (selectedCurrency !== 'ALL' && tx.currency !== selectedCurrency) return false;
-    return true;
-  });
+  // Filter transactions - memoized to avoid re-filtering on every render
+  const filteredTransactions = useMemo(() =>
+    transactions.filter((tx) => {
+      if (filterType !== 'all' && tx.type !== filterType) return false;
+      if (filterAccount !== 'all' && tx.account_id !== filterAccount) return false;
+      if (selectedCurrency !== 'ALL' && tx.currency !== selectedCurrency) return false;
+      return true;
+    }),
+    [transactions, filterType, filterAccount, selectedCurrency]
+  );
 
-  // Group transactions by date
-  const groupedByDate = filteredTransactions.reduce((acc, tx) => {
-    const date = formatDate(tx.transaction_date);
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(tx);
-    return acc;
-  }, {} as Record<string, Transaction[]>);
+  // Group transactions by date - memoized to avoid regrouping on every render
+  const groupedByDate = useMemo(() =>
+    filteredTransactions.reduce((acc: Record<string, Transaction[]>, tx: Transaction) => {
+      const date = formatDate(tx.transaction_date);
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(tx);
+      return acc;
+    }, {} as Record<string, Transaction[]>),
+    [filteredTransactions]
+  );
 
   if (loading) {
     return (
@@ -154,7 +159,7 @@ export default function TransactionsPage() {
                 filterType === filter.value ? 'filter-pill-active' : ''
               }`}
             >
-              {t(filter.labelKey as any)}
+              {t(filter.labelKey as Parameters<typeof t>[0])}
             </button>
           ))}
         </div>
@@ -202,7 +207,7 @@ export default function TransactionsPage() {
           <h3 className="text-lg font-semibold mt-4">{t('transactions.noTransactions')}</h3>
           <p className="text-sm text-muted-foreground mt-1">
             {transactions.length > 0 && (filterType !== 'all' || filterAccount !== 'all' || selectedCurrency !== 'ALL')
-              ? t('transactions.noTransactionsForCurrency' as any)
+              ? 'No transactions match your current filters.'
               : t('transactions.noTransactionsHint')}
           </p>
         </div>
@@ -279,7 +284,7 @@ export default function TransactionsPage() {
                         <button
                           onClick={() => setEditingTransaction(tx)}
                           className="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-primary transition-all"
-                          title={t('common.edit' as any) || 'Edit'}
+                          title="Edit"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
@@ -308,7 +313,7 @@ export default function TransactionsPage() {
       {/* Floating Action Button */}
       <button
         onClick={() => setIsModalOpen(true)}
-        className="fixed bottom-24 right-6 z-40 size-14 bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-full shadow-lg shadow-emerald-600/30 flex items-center justify-center text-white transition-all duration-200 cursor-pointer"
+        className="fixed bottom-24 right-6 z-40 size-14 bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-full shadow-lg shadow-emerald-600/30 flex items-center justify-center text-white transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         aria-label="Add new transaction"
       >
         <Plus className="size-7" />

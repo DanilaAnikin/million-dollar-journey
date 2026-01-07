@@ -2,7 +2,7 @@
 // These can be called from API routes or scripts
 
 import { supabase } from './supabase';
-import type { AccountCategory, Account } from '@/types/database';
+import type { AccountCategory } from '@/types/database';
 
 export const DEFAULT_CATEGORIES: Omit<AccountCategory, 'id' | 'user_id' | 'created_at' | 'updated_at'>[] = [
   { name: 'Stocks & ETFs', type: 'asset', icon: 'trending-up', color: '#10B981', sort_order: 1 },

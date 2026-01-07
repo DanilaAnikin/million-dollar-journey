@@ -78,30 +78,6 @@ function formatYAxisValue(value: number): string {
   return `$${value}`;
 }
 
-// Determine the appropriate date format based on selected range
-type DateFormatType = 'daily' | 'monthly' | 'yearly' | 'adaptive';
-
-function getDateFormatType(range: TimeRange, dataLength: number): DateFormatType {
-  switch (range) {
-    case '1W':
-    case '1M':
-      return 'daily';
-    case '1Y':
-      return 'monthly';
-    case '10Y':
-      return 'yearly';
-    case 'ALL':
-      // Adaptive - check data length to determine best format
-      if (dataLength <= 12) {
-        return 'monthly';
-      } else if (dataLength <= 52) {
-        return 'monthly';
-      } else {
-        return 'yearly';
-      }
-  }
-}
-
 // Calculate tick interval based on data length and range
 function getTickInterval(dataLength: number, range: TimeRange): number | 'preserveStartEnd' {
   if (range === '1W') {
@@ -195,8 +171,7 @@ export function NetWorthChart({
 
   const isPositiveChange = performanceData.absolute >= 0;
 
-  // Determine date format and tick interval based on selected range
-  const dateFormatType = getDateFormatType(selectedRange, filteredData.length);
+  // Determine tick interval based on selected range
   const tickInterval = getTickInterval(filteredData.length, selectedRange);
 
   return (

@@ -4,7 +4,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { calculateMonthlyContribution, type CalculationResult } from '@/lib/services/calculator';
-import { toUSD, getLatestRates, formatCurrency, getLiveRates } from '@/lib/services/currency';
+import { toUSD, getLatestRates, getLiveRates } from '@/lib/services/currency';
 import type { Account, AccountCategory, Profile, Transaction, Milestone, Currency } from '@/types/database';
 
 // ================================================

@@ -21,7 +21,6 @@ interface MathExplanationDialogProps {
 
 export function MathExplanationDialog({
   calculation,
-  currency,
   children
 }: MathExplanationDialogProps) {
   const { t } = useLanguage();

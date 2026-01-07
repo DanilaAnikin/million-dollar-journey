@@ -376,39 +376,44 @@ export async function processAllDueTransactions(): Promise<{
 export async function createRecurringTransaction(
   input: CreateRecurringTransactionInput
 ): Promise<{ data: RecurringTransaction | null; error: string | null }> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const userId = await getAuthenticatedUserId();
-  if (!userId) {
-    return { data: null, error: 'You must be logged in' };
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
+      return { data: null, error: 'You must be logged in to create recurring transactions' };
+    }
+
+    const { data, error } = await supabase
+      .from('recurring_transactions')
+      .insert({
+        user_id: userId,
+        name: input.name,
+        amount: input.amount,
+        currency: input.currency,
+        frequency: input.frequency,
+        next_due_date: input.next_due_date,
+        category_id: input.category_id || null,
+        account_id: input.account_id,
+        type: input.type,
+        description: input.description || null,
+        is_active: true,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('createRecurringTransaction: Insert error', error);
+      return { data: null, error: 'Failed to create recurring transaction. Please try again.' };
+    }
+
+    revalidatePath('/');
+
+    return { data: data as RecurringTransaction, error: null };
+  } catch (error) {
+    console.error('createRecurringTransaction: Unexpected error', error);
+    return { data: null, error: 'An unexpected error occurred. Please try again.' };
   }
-
-  const { data, error } = await supabase
-    .from('recurring_transactions')
-    .insert({
-      user_id: userId,
-      name: input.name,
-      amount: input.amount,
-      currency: input.currency,
-      frequency: input.frequency,
-      next_due_date: input.next_due_date,
-      category_id: input.category_id || null,
-      account_id: input.account_id,
-      type: input.type,
-      description: input.description || null,
-      is_active: true,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('createRecurringTransaction: Insert error', error);
-    return { data: null, error: error.message };
-  }
-
-  revalidatePath('/');
-
-  return { data: data as RecurringTransaction, error: null };
 }
 
 /**
@@ -417,42 +422,47 @@ export async function createRecurringTransaction(
 export async function updateRecurringTransaction(
   input: UpdateRecurringTransactionInput
 ): Promise<{ data: RecurringTransaction | null; error: string | null }> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const userId = await getAuthenticatedUserId();
-  if (!userId) {
-    return { data: null, error: 'You must be logged in' };
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
+      return { data: null, error: 'You must be logged in to update recurring transactions' };
+    }
+
+    const updates: Record<string, unknown> = {};
+
+    if (input.name !== undefined) updates.name = input.name;
+    if (input.amount !== undefined) updates.amount = input.amount;
+    if (input.currency !== undefined) updates.currency = input.currency;
+    if (input.frequency !== undefined) updates.frequency = input.frequency;
+    if (input.next_due_date !== undefined) updates.next_due_date = input.next_due_date;
+    if (input.category_id !== undefined) updates.category_id = input.category_id;
+    if (input.account_id !== undefined) updates.account_id = input.account_id;
+    if (input.type !== undefined) updates.type = input.type;
+    if (input.description !== undefined) updates.description = input.description;
+    if (input.is_active !== undefined) updates.is_active = input.is_active;
+
+    const { data, error } = await supabase
+      .from('recurring_transactions')
+      .update(updates)
+      .eq('id', input.id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('updateRecurringTransaction: Update error', error);
+      return { data: null, error: 'Failed to update recurring transaction. Please try again.' };
+    }
+
+    revalidatePath('/');
+
+    return { data: data as RecurringTransaction, error: null };
+  } catch (error) {
+    console.error('updateRecurringTransaction: Unexpected error', error);
+    return { data: null, error: 'An unexpected error occurred. Please try again.' };
   }
-
-  const updates: Record<string, unknown> = {};
-
-  if (input.name !== undefined) updates.name = input.name;
-  if (input.amount !== undefined) updates.amount = input.amount;
-  if (input.currency !== undefined) updates.currency = input.currency;
-  if (input.frequency !== undefined) updates.frequency = input.frequency;
-  if (input.next_due_date !== undefined) updates.next_due_date = input.next_due_date;
-  if (input.category_id !== undefined) updates.category_id = input.category_id;
-  if (input.account_id !== undefined) updates.account_id = input.account_id;
-  if (input.type !== undefined) updates.type = input.type;
-  if (input.description !== undefined) updates.description = input.description;
-  if (input.is_active !== undefined) updates.is_active = input.is_active;
-
-  const { data, error } = await supabase
-    .from('recurring_transactions')
-    .update(updates)
-    .eq('id', input.id)
-    .eq('user_id', userId)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('updateRecurringTransaction: Update error', error);
-    return { data: null, error: error.message };
-  }
-
-  revalidatePath('/');
-
-  return { data: data as RecurringTransaction, error: null };
 }
 
 /**
@@ -462,25 +472,30 @@ export async function deleteRecurringTransaction(id: string): Promise<{
   success: boolean;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const userId = await getAuthenticatedUserId();
-  if (!userId) {
-    return { success: false, error: 'You must be logged in' };
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
+      return { success: false, error: 'You must be logged in to delete recurring transactions' };
+    }
+
+    const { error } = await supabase
+      .from('recurring_transactions')
+      .update({ is_active: false })
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('deleteRecurringTransaction: Delete error', error);
+      return { success: false, error: 'Failed to delete recurring transaction. Please try again.' };
+    }
+
+    revalidatePath('/');
+
+    return { success: true, error: null };
+  } catch (error) {
+    console.error('deleteRecurringTransaction: Unexpected error', error);
+    return { success: false, error: 'An unexpected error occurred. Please try again.' };
   }
-
-  const { error } = await supabase
-    .from('recurring_transactions')
-    .update({ is_active: false })
-    .eq('id', id)
-    .eq('user_id', userId);
-
-  if (error) {
-    console.error('deleteRecurringTransaction: Delete error', error);
-    return { success: false, error: error.message };
-  }
-
-  revalidatePath('/');
-
-  return { success: true, error: null };
 }

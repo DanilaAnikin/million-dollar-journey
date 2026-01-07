@@ -111,7 +111,7 @@ export function PreviewTable({
                                 disabled={isDisabled}
                               >
                                 <span className="flex items-center gap-2">
-                                  {t(option.labelKey as any)}
+                                  {t(option.labelKey as Parameters<typeof t>[0])}
                                   {option.required && (
                                     <span className="text-destructive">*</span>
                                   )}

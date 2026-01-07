@@ -122,7 +122,6 @@ export function convertCurrency(
   const activeRates = rates || FALLBACK_RATES;
 
   if (!activeRates[from] || !activeRates[to]) {
-    console.warn('🔧 SERVICE: Missing rate for', from, 'or', to, '- returning raw amount');
     return amount;
   }
 

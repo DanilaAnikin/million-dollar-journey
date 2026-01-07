@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import type { AccountCategory, Currency } from '@/types/database';
+import type { AccountCategory, Currency, Account, Transaction, Profile } from '@/types/database';
 
 /**
  * Updates user profile settings including currency preference
@@ -29,8 +29,7 @@ export async function updateProfile(data: {
   if (data.targetAmountUsd !== undefined) updates.target_amount_usd = data.targetAmountUsd;
   if (data.targetDate !== undefined) {
     // Ensure target_date is properly formatted as YYYY-MM-DD string
-    // Cast to 'any' to allow the instanceof check regardless of the interface type
-    const rawDate = data.targetDate as any;
+    const rawDate = data.targetDate as unknown;
     const formattedDate = rawDate instanceof Date
       ? rawDate.toISOString().split('T')[0]
       : String(rawDate);
@@ -38,7 +37,7 @@ export async function updateProfile(data: {
   }
   if (data.preferredCurrency !== undefined) updates.preferred_currency = data.preferredCurrency;
 
-  const { data: updateResult, error } = await supabase
+  const { error } = await supabase
     .from('profiles')
     .update(updates)
     .eq('id', userId)
@@ -193,7 +192,7 @@ export async function getCategories(): Promise<AccountCategory[]> {
  */
 export async function exportUserData(): Promise<{
   success: boolean;
-  data: { accounts: any[]; transactions: any[]; categories: any[]; profile: any } | null;
+  data: { accounts: Account[]; transactions: Transaction[]; categories: AccountCategory[]; profile: Profile | null } | null;
   error: string | null;
 }> {
   try {

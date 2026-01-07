@@ -26,10 +26,10 @@ export default async function RootLayout({
 
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('preferred_currency')
         .eq('id', user.id)

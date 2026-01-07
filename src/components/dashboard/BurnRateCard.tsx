@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Repeat, ArrowRight, TrendingDown, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -27,29 +28,39 @@ export function BurnRateCard({ recurringTransactions }: BurnRateCardProps) {
   const { t } = useLanguage();
   const { currency: displayCurrency, convert, formatAmount } = useCurrency();
 
-  // Filter active recurring transactions and calculate totals
-  const activeTransactions = recurringTransactions.filter((rt) => rt.is_active);
+  // Memoize calculations to avoid recalculating on every render
+  const { activeTransactions, monthlyExpenses, monthlyIncome, netAmount, isPositiveNet, expenseRatio } = useMemo(() => {
+    // Filter active recurring transactions
+    const active = recurringTransactions.filter((rt) => rt.is_active);
 
-  // Calculate monthly totals in display currency
-  let monthlyExpenses = 0;
-  let monthlyIncome = 0;
+    // Calculate monthly totals in display currency
+    let expenses = 0;
+    let income = 0;
 
-  activeTransactions.forEach((rt) => {
-    const monthlyAmount = toMonthlyAmount(rt.amount, rt.frequency);
-    const convertedAmount = convert(monthlyAmount, rt.currency as Currency, displayCurrency);
+    active.forEach((rt) => {
+      const monthlyAmount = toMonthlyAmount(rt.amount, rt.frequency);
+      const convertedAmount = convert(monthlyAmount, rt.currency as Currency, displayCurrency);
 
-    if (rt.type === 'expense') {
-      monthlyExpenses += convertedAmount;
-    } else {
-      monthlyIncome += convertedAmount;
-    }
-  });
+      if (rt.type === 'expense') {
+        expenses += convertedAmount;
+      } else {
+        income += convertedAmount;
+      }
+    });
 
-  const netAmount = monthlyIncome - monthlyExpenses;
-  const isPositiveNet = netAmount >= 0;
+    const net = income - expenses;
+    const isPositive = net >= 0;
+    const ratio = income > 0 ? (expenses / income) * 100 : 0;
 
-  // Calculate what percentage of income goes to expenses
-  const expenseRatio = monthlyIncome > 0 ? (monthlyExpenses / monthlyIncome) * 100 : 0;
+    return {
+      activeTransactions: active,
+      monthlyExpenses: expenses,
+      monthlyIncome: income,
+      netAmount: net,
+      isPositiveNet: isPositive,
+      expenseRatio: ratio,
+    };
+  }, [recurringTransactions, convert, displayCurrency]);
 
   return (
     <div className="rounded-2xl border bg-card">

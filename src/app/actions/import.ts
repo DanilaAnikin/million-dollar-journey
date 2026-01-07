@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import type { Currency } from '@/types/database';
 
 // ============================================================================
 // Types
@@ -210,7 +209,7 @@ function parseAmount(amountInput: string | number, type: 'income' | 'expense'): 
 /**
  * Validate a single import row
  */
-function validateRow(row: ImportRow, rowIndex: number): { valid: boolean; error?: string } {
+function validateRow(row: ImportRow): { valid: boolean; error?: string } {
   // Validate date
   const parsedDate = parseDate(row.date);
   if (!parsedDate) {
@@ -251,7 +250,7 @@ export async function validateImportData(
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const validation = validateRow(row, i);
+    const validation = validateRow(row);
 
     if (!validation.valid && validation.error) {
       errors.push({ row: i + 1, message: validation.error }); // 1-based row numbers for user display
@@ -329,7 +328,7 @@ export async function importTransactions(
       const rowNum = i + 1; // 1-based for user display
 
       // Validate row
-      const validation = validateRow(row, i);
+      const validation = validateRow(row);
       if (!validation.valid) {
         errors.push({ row: rowNum, message: validation.error || 'Invalid row' });
         continue; // Skip invalid rows but continue processing
@@ -507,7 +506,7 @@ export async function previewImportData(
     const rowNum = i + 1;
 
     // Validate
-    const validation = validateRow(row, i);
+    const validation = validateRow(row);
     if (!validation.valid) {
       errors.push({ row: rowNum, message: validation.error || 'Invalid row' });
       continue;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, TrendingUp, TrendingDown, DollarSign, Repeat, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -33,11 +33,7 @@ export default function RecurringPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<RecurringTransaction | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const result = await getRecurringPageData();
       setRecurring(result.recurring);
@@ -50,7 +46,11 @@ export default function RecurringPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [t]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   async function handleSubmit(data: RecurringFormData) {
     try {
@@ -179,7 +179,7 @@ export default function RecurringPage() {
       </div>
 
       {/* Burn Rate KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
         {/* Monthly Fixed Costs */}
         <Card className="rounded-2xl">
           <CardContent className="pt-6">

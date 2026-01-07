@@ -526,7 +526,7 @@ export default function ImportPage() {
                     !isActive && !isCompleted && 'text-muted-foreground'
                   )}
                 >
-                  {t(labelKey as any)}
+                  {t(labelKey)}
                 </span>
               </div>
               {!isLast && (

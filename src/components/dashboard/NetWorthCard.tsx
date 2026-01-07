@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useCurrency } from '@/lib/contexts/CurrencyContext';
@@ -21,19 +22,44 @@ export function NetWorthCard({
   const { t } = useLanguage();
   const { currency: globalCurrency, convert, formatAmount } = useCurrency();
 
-  // Convert amounts to global currency for display
-  const displayAmount = convert(amount, sourceCurrency, globalCurrency);
-  const displayPreviousAmount = previousAmount ? convert(previousAmount, sourceCurrency, globalCurrency) : undefined;
-  const displayTargetAmount = convert(targetAmount, sourceCurrency, globalCurrency);
+  // Memoize all calculations to avoid recalculating on every render
+  const {
+    progressPercentage,
+    changePercent,
+    isPositive,
+    formattedNetWorth,
+    formattedChange,
+    progressStyle
+  } = useMemo(() => {
+    // Convert amounts to global currency for display
+    const dispAmount = convert(amount, sourceCurrency, globalCurrency);
+    const dispPreviousAmount = previousAmount ? convert(previousAmount, sourceCurrency, globalCurrency) : undefined;
+    const dispTargetAmount = convert(targetAmount, sourceCurrency, globalCurrency);
 
-  const progressPercentage = Math.min(100, (displayAmount / displayTargetAmount) * 100);
-  const change = displayPreviousAmount ? displayAmount - displayPreviousAmount : 0;
-  const changePercent = displayPreviousAmount ? ((displayAmount - displayPreviousAmount) / displayPreviousAmount) * 100 : 0;
-  const isPositive = change >= 0;
+    const progress = Math.min(100, (dispAmount / dispTargetAmount) * 100);
+    const chg = dispPreviousAmount ? dispAmount - dispPreviousAmount : 0;
+    const chgPercent = dispPreviousAmount ? ((dispAmount - dispPreviousAmount) / dispPreviousAmount) * 100 : 0;
+    const positive = chg >= 0;
 
-  // Format the amounts using the global currency
-  const formattedNetWorth = formatAmount(displayAmount, globalCurrency);
-  const formattedChange = formatAmount(Math.abs(change), globalCurrency);
+    // Format the amounts using the global currency
+    const fmtNetWorth = formatAmount(dispAmount, globalCurrency);
+    const fmtChange = formatAmount(Math.abs(chg), globalCurrency);
+
+    // Memoize inline style object to prevent new reference on every render
+    const style = { width: `${progress}%` };
+
+    return {
+      displayAmount: dispAmount,
+      displayTargetAmount: dispTargetAmount,
+      progressPercentage: progress,
+      change: chg,
+      changePercent: chgPercent,
+      isPositive: positive,
+      formattedNetWorth: fmtNetWorth,
+      formattedChange: fmtChange,
+      progressStyle: style
+    };
+  }, [amount, sourceCurrency, previousAmount, targetAmount, globalCurrency, convert, formatAmount]);
 
   return (
     <div className="relative overflow-hidden rounded-3xl shadow-lg hero-gradient">
@@ -87,7 +113,7 @@ export function NetWorthCard({
             <div className="h-2 bg-white/20 rounded-full overflow-hidden">
               <div
                 className="h-full bg-white rounded-full transition-all duration-500"
-                style={{ width: `${progressPercentage}%` }}
+                style={progressStyle}
               />
             </div>
           </div>

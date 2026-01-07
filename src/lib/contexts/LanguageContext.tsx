@@ -1,7 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { translations, getTranslation, type Language, type TranslationKey } from '@/lib/i18n/translations';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { getTranslation, type Language, type TranslationKey } from '@/lib/i18n/translations';
 
 interface LanguageContextType {
   language: Language;
@@ -19,17 +19,17 @@ interface LanguageProviderProps {
 }
 
 export function LanguageProvider({ children, defaultLanguage = 'en' }: LanguageProviderProps) {
-  const [language, setLanguageState] = useState<Language>(defaultLanguage);
-  const [mounted, setMounted] = useState(false);
-
-  // Load language from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Language | null;
-    if (stored && (stored === 'en' || stored === 'cs')) {
-      setLanguageState(stored);
+  const [language, setLanguageState] = useState<Language>(() => {
+    // Initialize from localStorage if available (client-side only)
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(STORAGE_KEY) as Language | null;
+      if (stored && (stored === 'en' || stored === 'cs')) {
+        return stored;
+      }
     }
-    setMounted(true);
-  }, []);
+    return defaultLanguage;
+  });
+  const [mounted] = useState(true);
 
   // Save language to localStorage when it changes
   const setLanguage = useCallback((lang: Language) => {

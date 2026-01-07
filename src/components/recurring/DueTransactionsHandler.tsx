@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, Loader2, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bell, Loader2, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn, formatDate } from '@/lib/utils';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
@@ -98,10 +98,6 @@ export function DueTransactionsHandler({ onProcessed }: DueTransactionsHandlerPr
   }
 
   const totalDueCount = dueTransactions.length;
-  const totalDueAmount = dueTransactions.reduce((sum, tx) => {
-    const amount = tx.type === 'expense' ? -tx.amount : tx.amount;
-    return sum + amount;
-  }, 0);
 
   return (
     <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl overflow-hidden">

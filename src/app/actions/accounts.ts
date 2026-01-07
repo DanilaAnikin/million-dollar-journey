@@ -31,129 +31,144 @@ export interface UpdateAccountInput {
 }
 
 export async function createAccount(input: CreateAccountInput): Promise<{ data: Account | null; error: string | null }> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  // Try getUser first (recommended, verifies with DB)
-  let userId: string | undefined;
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Try getUser first (recommended, verifies with DB)
+    let userId: string | undefined;
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (user) {
-    userId = user.id;
-  } else {
-    // Fallback to getSession (JWT only, no DB verification)
-    const { data: { session } } = await supabase.auth.getSession();
-    userId = session?.user?.id;
+    if (user) {
+      userId = user.id;
+    } else {
+      // Fallback to getSession (JWT only, no DB verification)
+      const { data: { session } } = await supabase.auth.getSession();
+      userId = session?.user?.id;
+    }
+
+    // Final check
+    if (!userId) {
+      console.error('createAccount: AUTH FAILED - No user from getUser or getSession');
+      return { data: null, error: 'You must be logged in to create an account' };
+    }
+
+    // Continue with account creation using userId
+    const { data, error } = await supabase
+      .from('accounts')
+      .insert({
+        user_id: userId,
+        category_id: input.categoryId || null,
+        name: input.name,
+        currency: input.currency,
+        balance: input.balance,
+        is_investment: input.isInvestment ?? false,
+        interest_rate_pa: input.interestRatePa ?? 0,
+        institution: input.institution || null,
+        notes: input.notes || null,
+        is_active: true,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Insert error:', error);
+      return { data: null, error: 'Failed to create account. Please try again.' };
+    }
+
+    revalidatePath('/');
+    revalidatePath('/accounts');
+    return { data, error: null };
+  } catch (error) {
+    console.error('createAccount: Unexpected error', error);
+    return { data: null, error: 'An unexpected error occurred. Please try again.' };
   }
-
-  // Final check
-  if (!userId) {
-    console.error('createAccount: AUTH FAILED - No user from getUser or getSession');
-    return { data: null, error: 'You must be logged in' };
-  }
-
-  // Continue with account creation using userId
-  const { data, error } = await supabase
-    .from('accounts')
-    .insert({
-      user_id: userId,
-      category_id: input.categoryId || null,
-      name: input.name,
-      currency: input.currency,
-      balance: input.balance,
-      is_investment: input.isInvestment ?? false,
-      interest_rate_pa: input.interestRatePa ?? 0,
-      institution: input.institution || null,
-      notes: input.notes || null,
-      is_active: true,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Insert error:', error);
-    return { data: null, error: error.message };
-  }
-
-  revalidatePath('/');
-  revalidatePath('/accounts');
-  return { data, error: null };
 }
 
 export async function updateAccount(input: UpdateAccountInput): Promise<{ data: Account | null; error: string | null }> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  // Try getUser first (recommended, verifies with DB)
-  let userId = (await supabase.auth.getUser()).data.user?.id;
-  if (!userId) {
-    // Fallback to getSession (JWT only, no DB verification)
-    const { data: { session } } = await supabase.auth.getSession();
-    userId = session?.user?.id;
+    // Try getUser first (recommended, verifies with DB)
+    let userId = (await supabase.auth.getUser()).data.user?.id;
+    if (!userId) {
+      // Fallback to getSession (JWT only, no DB verification)
+      const { data: { session } } = await supabase.auth.getSession();
+      userId = session?.user?.id;
+    }
+
+    // Final check
+    if (!userId) {
+      console.error('updateAccount: AUTH FAILED - No user from getUser or getSession');
+      return { data: null, error: 'You must be logged in to update accounts' };
+    }
+
+    const updates: Record<string, unknown> = {};
+
+    if (input.name !== undefined) updates.name = input.name;
+    if (input.categoryId !== undefined) updates.category_id = input.categoryId;
+    if (input.balance !== undefined) updates.balance = input.balance;
+    if (input.isInvestment !== undefined) updates.is_investment = input.isInvestment;
+    if (input.interestRatePa !== undefined) updates.interest_rate_pa = input.interestRatePa;
+    if (input.institution !== undefined) updates.institution = input.institution;
+    if (input.notes !== undefined) updates.notes = input.notes;
+    if (input.isActive !== undefined) updates.is_active = input.isActive;
+
+    const { data, error } = await supabase
+      .from('accounts')
+      .update(updates)
+      .eq('id', input.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating account:', error);
+      return { data: null, error: 'Failed to update account. Please try again.' };
+    }
+
+    revalidatePath('/');
+    revalidatePath('/accounts');
+    return { data, error: null };
+  } catch (error) {
+    console.error('updateAccount: Unexpected error', error);
+    return { data: null, error: 'An unexpected error occurred. Please try again.' };
   }
-
-  // Final check
-  if (!userId) {
-    console.error('updateAccount: AUTH FAILED - No user from getUser or getSession');
-    return { data: null, error: 'You must be logged in' };
-  }
-
-  const updates: Record<string, unknown> = {};
-
-  if (input.name !== undefined) updates.name = input.name;
-  if (input.categoryId !== undefined) updates.category_id = input.categoryId;
-  if (input.balance !== undefined) updates.balance = input.balance;
-  if (input.isInvestment !== undefined) updates.is_investment = input.isInvestment;
-  if (input.interestRatePa !== undefined) updates.interest_rate_pa = input.interestRatePa;
-  if (input.institution !== undefined) updates.institution = input.institution;
-  if (input.notes !== undefined) updates.notes = input.notes;
-  if (input.isActive !== undefined) updates.is_active = input.isActive;
-
-  const { data, error } = await supabase
-    .from('accounts')
-    .update(updates)
-    .eq('id', input.id)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error updating account:', error);
-    return { data: null, error: error.message };
-  }
-
-  revalidatePath('/');
-  revalidatePath('/accounts');
-  return { data, error: null };
 }
 
 export async function deleteAccount(accountId: string): Promise<{ success: boolean; error: string | null }> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  // Try getUser first (recommended, verifies with DB)
-  let userId = (await supabase.auth.getUser()).data.user?.id;
-  if (!userId) {
-    // Fallback to getSession (JWT only, no DB verification)
-    const { data: { session } } = await supabase.auth.getSession();
-    userId = session?.user?.id;
+    // Try getUser first (recommended, verifies with DB)
+    let userId = (await supabase.auth.getUser()).data.user?.id;
+    if (!userId) {
+      // Fallback to getSession (JWT only, no DB verification)
+      const { data: { session } } = await supabase.auth.getSession();
+      userId = session?.user?.id;
+    }
+
+    // Final check
+    if (!userId) {
+      console.error('deleteAccount: AUTH FAILED - No user from getUser or getSession');
+      return { success: false, error: 'You must be logged in to delete accounts' };
+    }
+
+    const { error } = await supabase
+      .from('accounts')
+      .update({ is_active: false })
+      .eq('id', accountId);
+
+    if (error) {
+      console.error('Error deleting account:', error);
+      return { success: false, error: 'Failed to delete account. Please try again.' };
+    }
+
+    revalidatePath('/');
+    revalidatePath('/accounts');
+    return { success: true, error: null };
+  } catch (error) {
+    console.error('deleteAccount: Unexpected error', error);
+    return { success: false, error: 'An unexpected error occurred. Please try again.' };
   }
-
-  // Final check
-  if (!userId) {
-    console.error('deleteAccount: AUTH FAILED - No user from getUser or getSession');
-    return { success: false, error: 'You must be logged in' };
-  }
-
-  const { error } = await supabase
-    .from('accounts')
-    .update({ is_active: false })
-    .eq('id', accountId);
-
-  if (error) {
-    console.error('Error deleting account:', error);
-    return { success: false, error: error.message };
-  }
-
-  revalidatePath('/');
-  revalidatePath('/accounts');
-  return { success: true, error: null };
 }
 
 export async function getAccounts(includeInactive: boolean = false): Promise<{

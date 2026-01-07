@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import type { Currency } from '@/types/database';
 
@@ -23,16 +23,20 @@ const currencySymbols: Record<Currency, string> = {
 };
 
 export function AmountInput({ value, onChange, currency, isNegative = false }: AmountInputProps) {
-  const [displayValue, setDisplayValue] = useState(value.toString());
+  const [displayValue, setDisplayValue] = useState(() => value === 0 ? '' : value.toString());
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (value === 0) {
-      setDisplayValue('');
-    } else {
-      setDisplayValue(value.toString());
+  // Track the previous value to detect external changes
+  const [prevValue, setPrevValue] = useState(value);
+
+  // Sync display value when external value changes (not from user input)
+  if (value !== prevValue) {
+    setPrevValue(value);
+    const currentNum = parseFloat(displayValue) || 0;
+    if (Math.abs(currentNum - value) > 0.01) {
+      setDisplayValue(value === 0 ? '' : value.toString());
     }
-  }, [value]);
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9.]/g, '');
