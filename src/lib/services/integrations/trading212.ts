@@ -75,3 +75,40 @@ export async function fetchTrading212Balance(apiKey: string): Promise<{ balance:
   const main = accounts[0];
   return { balance: main.balance, currency: main.currency };
 }
+
+export interface Trading212Data {
+  total: number;
+  free: number;
+  invested: number;
+  currency: string;
+}
+
+/**
+ * Fetches cash account data from Trading 212 API
+ * Returns normalized data with total, free, invested, and currency
+ */
+export async function fetchTrading212Data(apiKey: string): Promise<Trading212Data> {
+  const baseUrl = 'https://live.trading212.com/api/v0';
+
+  const response = await fetch(`${baseUrl}/equity/account/cash`, {
+    headers: {
+      'Authorization': apiKey,
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Invalid API Key');
+    }
+    throw new Error(`Trading 212 API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data: Trading212CashResponse = await response.json();
+
+  return {
+    total: data.total,
+    free: data.free,
+    invested: data.invested,
+    currency: data.currency,
+  };
+}

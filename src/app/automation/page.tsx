@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Upload, Settings, CheckCircle2, Circle, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import {
   LogoDegiro,
   LogoIBKR,
 } from '@/components/ui/BrandLogos';
+import { IntegrationModal, IntegrationType } from '@/components/automation';
 
 interface IntegrationService {
   id: string;
@@ -82,10 +84,22 @@ const MANUAL_INTEGRATIONS: IntegrationService[] = [
 
 export default function AutomationPage() {
   const router = useRouter();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedIntegration, setSelectedIntegration] = useState<IntegrationType | null>(null);
 
   const handleConnect = (serviceId: string) => {
-    // TODO: Open modal for configuration
-    console.log('Connect:', serviceId);
+    // Only open modal for supported integrations
+    if (serviceId === 'trading212' || serviceId === 'xtb' || serviceId === 'gocardless') {
+      setSelectedIntegration(serviceId as IntegrationType);
+      setModalOpen(true);
+    }
+  };
+
+  const handleModalClose = (open: boolean) => {
+    setModalOpen(open);
+    if (!open) {
+      setSelectedIntegration(null);
+    }
   };
 
   const handleUpload = () => {
@@ -268,6 +282,13 @@ export default function AutomationPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Integration Modal */}
+      <IntegrationModal
+        open={modalOpen}
+        onOpenChange={handleModalClose}
+        integrationType={selectedIntegration}
+      />
     </div>
   );
 }
