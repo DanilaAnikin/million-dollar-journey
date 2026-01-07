@@ -7,6 +7,16 @@ import type { Transaction } from '@/types/database';
 export interface NetWorthDataPoint {
   month: string;
   netWorth: number;
+  date?: string; // ISO date string for more precise filtering
+}
+
+// Time range options for filtering data
+export type TimeRange = '1W' | '1M' | '1Y' | '10Y' | 'ALL';
+
+// Period change calculation result
+export interface PeriodChange {
+  absolute: number;
+  percentage: number;
 }
 
 /**
@@ -21,6 +31,11 @@ export interface NetWorthDataPoint {
  * - TRANSFER transactions: Neutral (money moved between accounts, net worth unchanged)
  * - ADJUSTMENT transactions: Reverse the adjustment effect
  * - INTEREST transactions: Subtract (we hadn't earned it yet)
+ *
+ * Ghost Money Bug Fix:
+ * - Finds the earliest transaction date across all transactions
+ * - Forces net worth to $0 for any period BEFORE the first transaction
+ * - Ensures the reverse walk reaches exactly $0 at the origin point
  *
  * Note: This function assumes transactions have already been converted to the
  * display currency by the caller, or that the currentNetWorth and transaction
@@ -38,6 +53,12 @@ export function calculateHistoricalNetWorth(
 ): NetWorthDataPoint[] {
   // Generate array of the last N months (in reverse chronological order initially)
   const monthsArray = generateLastNMonths(months);
+
+  // Find the earliest transaction date to fix ghost money bug
+  const earliestTransactionDate = findEarliestTransactionDate(transactions);
+  const earliestMonthKey = earliestTransactionDate
+    ? `${earliestTransactionDate.getFullYear()}-${String(earliestTransactionDate.getMonth() + 1).padStart(2, '0')}`
+    : null;
 
   // Create a map to store net worth for each month
   const netWorthByMonth = new Map<string, number>();
@@ -72,13 +93,48 @@ export function calculateHistoricalNetWorth(
 
   // Convert to array format and reverse to chronological order (oldest first)
   const result: NetWorthDataPoint[] = monthsArray
-    .map(({ label }) => ({
-      month: label,
-      netWorth: Math.round((netWorthByMonth.get(label) || 0) * 100) / 100,
-    }))
+    .map(({ key, label }) => {
+      // Ghost Money Bug Fix: Force $0 for months before the earliest transaction
+      let netWorth = netWorthByMonth.get(label) || 0;
+
+      if (earliestMonthKey && key < earliestMonthKey) {
+        netWorth = 0;
+      }
+
+      return {
+        month: label,
+        netWorth: Math.round(netWorth * 100) / 100,
+        date: key, // Store the full date key for filtering
+      };
+    })
     .reverse();
 
   return result;
+}
+
+/**
+ * Finds the earliest transaction date from an array of transactions.
+ * Used to fix the "ghost money" bug by ensuring net worth is $0 before first activity.
+ *
+ * @param transactions - Array of transactions to analyze
+ * @returns The earliest transaction date, or null if no transactions
+ */
+function findEarliestTransactionDate(transactions: Transaction[]): Date | null {
+  if (transactions.length === 0) {
+    return null;
+  }
+
+  let earliest: Date | null = null;
+
+  for (const transaction of transactions) {
+    const txDate = new Date(transaction.transaction_date);
+
+    if (!earliest || txDate < earliest) {
+      earliest = txDate;
+    }
+  }
+
+  return earliest;
 }
 
 /**
@@ -218,4 +274,140 @@ export function getDateRangeForLastNMonths(months: number = 12): {
   startDate.setHours(0, 0, 0, 0);
 
   return { startDate, endDate };
+}
+
+/**
+ * Filters historical net worth data based on the selected time range with adaptive granularity.
+ *
+ * Adaptive Granularity Rules:
+ * - 1W, 1M: Daily data points (all points shown within range)
+ * - 1Y: Weekly/Monthly points (sample every ~1 month for monthly data)
+ * - 10Y, ALL > 5 years: Quarterly points (sample every ~3 months)
+ * - ALL < 1 year: Weekly/Monthly points (all points shown)
+ *
+ * @param data - Array of net worth data points (in chronological order)
+ * @param range - Time range to filter by ('1W', '1M', '1Y', '10Y', 'ALL')
+ * @returns Filtered array of data points with adaptive sampling
+ */
+export function filterDataByRange(
+  data: NetWorthDataPoint[],
+  range: TimeRange
+): NetWorthDataPoint[] {
+  if (!data || data.length === 0) {
+    return [];
+  }
+
+  if (range === 'ALL') {
+    // For ALL, apply adaptive granularity based on total data span
+    const totalMonths = data.length;
+
+    if (totalMonths > 60) {
+      // More than 5 years: show quarterly data points (every 3 months)
+      return sampleDataPointsByInterval(data, 3);
+    } else if (totalMonths > 12) {
+      // 1-5 years: show monthly data points (every month)
+      return data;
+    } else {
+      // Less than 1 year: show all data points
+      return data;
+    }
+  }
+
+  // Filter by time range and apply appropriate granularity
+  const dataPointsConfig: Record<TimeRange, { count: number; samplingInterval: number }> = {
+    '1W': { count: 1, samplingInterval: 1 }, // Show 1 data point (latest month)
+    '1M': { count: 1, samplingInterval: 1 }, // Show 1 month
+    '1Y': { count: 12, samplingInterval: 1 }, // Show 12 months, all points
+    '10Y': { count: Math.min(120, data.length), samplingInterval: 3 }, // 10 years, quarterly
+    'ALL': { count: data.length, samplingInterval: 1 },
+  };
+
+  const config = dataPointsConfig[range];
+  const filtered = data.slice(-config.count);
+
+  // Apply sampling if needed
+  if (config.samplingInterval > 1) {
+    return sampleDataPointsByInterval(filtered, config.samplingInterval);
+  }
+
+  return filtered;
+}
+
+/**
+ * Samples data points at a regular interval (e.g., every N months).
+ * Always includes the first and last data points to preserve range boundaries.
+ *
+ * @param data - Array of data points to sample
+ * @param interval - Sampling interval (e.g., 3 for quarterly)
+ * @returns Sampled array of data points
+ */
+function sampleDataPointsByInterval(
+  data: NetWorthDataPoint[],
+  interval: number
+): NetWorthDataPoint[] {
+  if (data.length <= 2 || interval <= 1) {
+    return data;
+  }
+
+  const sampled: NetWorthDataPoint[] = [data[0]]; // Always include first
+
+  for (let i = interval; i < data.length - 1; i += interval) {
+    sampled.push(data[i]);
+  }
+
+  // Always include last point
+  if (data.length > 1) {
+    sampled.push(data[data.length - 1]);
+  }
+
+  return sampled;
+}
+
+/**
+ * Calculates the change in net worth over a period.
+ *
+ * Formula: percentage = (EndValue - StartValue) / |StartValue| * 100
+ * Handles division by zero gracefully:
+ * - If StartValue is 0 and EndValue is positive: returns 100%
+ * - If StartValue is 0 and EndValue is negative: returns -100%
+ * - If both are 0: returns 0%
+ *
+ * @param data - Array of net worth data points (should be filtered to desired range)
+ * @returns Object with absolute change and percentage change
+ */
+export function getPeriodChange(data: NetWorthDataPoint[]): PeriodChange {
+  if (!data || data.length === 0) {
+    return { absolute: 0, percentage: 0 };
+  }
+
+  // If only one data point, show its value as absolute change
+  if (data.length === 1) {
+    return {
+      absolute: Math.round(data[0].netWorth * 100) / 100,
+      percentage: 0,
+    };
+  }
+
+  const startValue = data[0].netWorth;
+  const endValue = data[data.length - 1].netWorth;
+  const absolute = endValue - startValue;
+
+  // Handle division by zero edge cases
+  let percentage = 0;
+
+  if (startValue !== 0) {
+    // Normal case: calculate percentage based on start value
+    percentage = (absolute / Math.abs(startValue)) * 100;
+  } else if (endValue !== 0) {
+    // Edge case: starting from zero
+    // If we gained money from 0, it's 100% gain
+    // If we lost money from 0 (went negative), it's -100% loss
+    percentage = endValue > 0 ? 100 : -100;
+  }
+  // If both start and end are 0, percentage remains 0
+
+  return {
+    absolute: Math.round(absolute * 100) / 100,
+    percentage: Math.round(percentage * 100) / 100,
+  };
 }

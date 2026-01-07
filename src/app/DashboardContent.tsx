@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
   NetWorthCard,
@@ -15,7 +15,14 @@ import {
 } from '@/components/dashboard';
 import { TrendingUp } from 'lucide-react';
 import { calculateMonthlyContribution, type CalculationResult } from '@/lib/services/calculator';
-import { calculateHistoricalNetWorth, type NetWorthDataPoint } from '@/lib/services/analytics';
+import {
+  calculateHistoricalNetWorth,
+  filterDataByRange,
+  getPeriodChange,
+  type NetWorthDataPoint,
+  type TimeRange,
+  type PeriodChange,
+} from '@/lib/services/analytics';
 import { getLiveRates } from '@/lib/services/currency';
 import { createClient } from '@/lib/supabase/client';
 import { TARGET_AMOUNT_USD, TARGET_DATE } from '@/lib/constants';
@@ -35,6 +42,7 @@ export function DashboardContent() {
   const [historicalNetWorth, setHistoricalNetWorth] = useState<NetWorthDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [targetAmount, setTargetAmount] = useState(TARGET_AMOUNT_USD);
+  const [selectedRange, setSelectedRange] = useState<TimeRange>('ALL');
 
   const supabase = createClient();
 
@@ -163,6 +171,16 @@ export function DashboardContent() {
   // Get net worth from calculation (in USD, will be converted by NetWorthCard using global currency)
   const netWorthUSD = calculation?.currentNetWorthUSD ?? 0;
 
+  // Filter historical data based on selected time range
+  const filteredHistoricalData = useMemo(() => {
+    return filterDataByRange(historicalNetWorth, selectedRange);
+  }, [historicalNetWorth, selectedRange]);
+
+  // Calculate performance metrics for the selected period
+  const performanceData = useMemo(() => {
+    return getPeriodChange(filteredHistoricalData);
+  }, [filteredHistoricalData]);
+
   return (
     <div className="p-4 lg:p-6 space-y-6">
       {/* AI Advisor Card - Prominent placement at top */}
@@ -199,6 +217,8 @@ export function DashboardContent() {
           className="h-[300px]"
           goalAmount={targetAmount}
           data={historicalNetWorth.length > 0 ? historicalNetWorth : undefined}
+          selectedRange={selectedRange}
+          onRangeChange={setSelectedRange}
         />
       </div>
 
