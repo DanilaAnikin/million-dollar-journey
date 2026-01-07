@@ -1305,6 +1305,10 @@ export const translations = {
     en: 'Import',
     cs: 'Import',
   },
+  'nav.automation': {
+    en: 'Automation',
+    cs: 'Automatizace',
+  },
 
   // Import
   'import.title': {

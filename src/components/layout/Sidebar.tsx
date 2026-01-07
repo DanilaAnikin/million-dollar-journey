@@ -11,7 +11,8 @@ import {
   History,
   LogOut,
   Loader2,
-  Repeat
+  Repeat,
+  Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,7 @@ export function Sidebar() {
     { href: '/accounts', label: t('nav.accounts'), icon: Wallet },
     { href: '/transactions', label: t('nav.transactions'), icon: History },
     { href: '/recurring', label: t('nav.recurring'), icon: Repeat },
+    { href: '/automation', label: t('nav.automation'), icon: Zap },
     { href: '/settings', label: t('nav.settings'), icon: Settings },
   ];
 

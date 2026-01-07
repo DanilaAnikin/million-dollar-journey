@@ -245,6 +245,70 @@ export type Database = {
           updated_at?: string
         }
       }
+      integrations: {
+        Row: {
+          id: string
+          user_id: string
+          provider: string
+          name: string
+          api_key: string
+          status: 'active' | 'error' | 'expired'
+          last_synced_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          provider: string
+          name: string
+          api_key: string
+          status?: 'active' | 'error' | 'expired'
+          last_synced_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          provider?: string
+          name?: string
+          api_key?: string
+          status?: 'active' | 'error' | 'expired'
+          last_synced_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      integration_mappings: {
+        Row: {
+          id: string
+          integration_id: string
+          external_account_id: string
+          external_account_name: string
+          internal_account_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          integration_id: string
+          external_account_id: string
+          external_account_name: string
+          internal_account_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          integration_id?: string
+          external_account_id?: string
+          external_account_name?: string
+          internal_account_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -363,6 +427,36 @@ export interface RecurringTransaction {
   type: 'expense' | 'income';
   description: string | null;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Integration status type
+export type IntegrationStatus = 'active' | 'error' | 'expired';
+
+// Integration provider type
+export type IntegrationProvider = 'gocardless' | 'trading212' | 'xtb';
+
+// Integration record
+export interface Integration {
+  id: string;
+  user_id: string;
+  provider: IntegrationProvider;
+  name: string;
+  api_key: string;
+  status: IntegrationStatus;
+  last_synced_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Integration mapping record (1:N relationship - one integration can map to multiple accounts)
+export interface IntegrationMapping {
+  id: string;
+  integration_id: string;
+  external_account_id: string;  // ID from external API (e.g., "ACC-123", "default")
+  external_account_name: string; // Name from external API (e.g., "Trading 212 Portfolio")
+  internal_account_id: string;   // FK to accounts table
   created_at: string;
   updated_at: string;
 }

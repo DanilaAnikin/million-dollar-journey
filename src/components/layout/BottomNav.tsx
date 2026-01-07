@@ -7,7 +7,8 @@ import {
   Wallet,
   ArrowLeftRight,
   Settings,
-  Repeat
+  Repeat,
+  Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
@@ -21,6 +22,7 @@ export function BottomNav() {
     { href: '/accounts', label: t('nav.accounts'), icon: Wallet },
     { href: '/transactions', label: t('nav.transactions'), icon: ArrowLeftRight },
     { href: '/recurring', label: t('nav.recurring'), icon: Repeat },
+    { href: '/automation', label: t('nav.automation'), icon: Zap },
     { href: '/settings', label: t('nav.settings'), icon: Settings },
   ];
 
