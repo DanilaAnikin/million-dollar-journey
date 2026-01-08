@@ -445,6 +445,7 @@ export interface Integration {
   name: string;
   api_key: string;
   status: IntegrationStatus;
+  is_demo: boolean;
   last_synced_at: string | null;
   created_at: string;
   updated_at: string;

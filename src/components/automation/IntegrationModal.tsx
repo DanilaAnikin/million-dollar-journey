@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -88,6 +89,7 @@ export function IntegrationModal({
   const [name, setName] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
 
   // Wizard state
   const [step, setStep] = useState<1 | 2>(1);
@@ -125,6 +127,7 @@ export function IntegrationModal({
     setName('');
     setApiKey('');
     setShowApiKey(false);
+    setIsDemo(false);
     setError(null);
     setExternalAccounts([]);
     setMappings({});
@@ -146,7 +149,7 @@ export function IntegrationModal({
     setError(null);
 
     try {
-      const result = await validateAndFetchAccounts(config.provider, apiKey.trim());
+      const result = await validateAndFetchAccounts(config.provider, apiKey.trim(), isDemo);
 
       if (!result.success || !result.accounts) {
         setError(result.error || 'Failed to fetch accounts');
@@ -258,6 +261,7 @@ export function IntegrationModal({
         provider: config.provider,
         name: name.trim() || config.placeholderName,
         apiKey: apiKey.trim(),
+        isDemo,
         mappings: mappingsArray,
       });
 
@@ -367,6 +371,23 @@ export function IntegrationModal({
                     This key is stored securely and only used for read-only access.
                   </p>
                 </div>
+
+                {/* Demo Mode Checkbox - Trading 212 only */}
+                {integrationType === 'trading212' && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isDemo"
+                      checked={isDemo}
+                      onCheckedChange={(checked) => setIsDemo(checked === true)}
+                    />
+                    <Label
+                      htmlFor="isDemo"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Use Practice Account (Demo)
+                    </Label>
+                  </div>
+                )}
 
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>

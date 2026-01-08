@@ -76,7 +76,7 @@ export async function executeIntegrationSync(
   try {
     switch (integration.provider) {
       case 'trading212':
-        externalAccounts = await fetchTrading212Accounts(integration.api_key);
+        externalAccounts = await fetchTrading212Accounts(integration.api_key, integration.is_demo);
         break;
       // Add other providers here
       default:

@@ -8,7 +8,7 @@ import { executeIntegrationSync } from '@/lib/services/integrations/sync-manager
 /**
  * Validates API key and fetches external accounts (for Step 1 of wizard)
  */
-export async function validateAndFetchAccounts(provider: string, apiKey: string): Promise<{
+export async function validateAndFetchAccounts(provider: string, apiKey: string, isDemo?: boolean): Promise<{
   success: boolean;
   error?: string;
   accounts?: Array<{
@@ -22,7 +22,7 @@ export async function validateAndFetchAccounts(provider: string, apiKey: string)
     switch (provider) {
       case 'trading212': {
         const { fetchTrading212Accounts } = await import('@/lib/services/integrations/trading212');
-        const accounts = await fetchTrading212Accounts(apiKey);
+        const accounts = await fetchTrading212Accounts(apiKey, isDemo);
         return { success: true, accounts };
       }
       // Add other providers here
@@ -83,6 +83,7 @@ export async function createIntegrationWithMappings(data: {
   provider: string;
   name: string;
   apiKey: string;
+  isDemo?: boolean;
   mappings: Array<{
     externalAccountId: string;
     externalAccountName: string;
@@ -111,6 +112,7 @@ export async function createIntegrationWithMappings(data: {
         provider: data.provider,
         name: data.name,
         api_key: data.apiKey,
+        is_demo: data.isDemo ?? false,
         status: 'active',
       })
       .select()

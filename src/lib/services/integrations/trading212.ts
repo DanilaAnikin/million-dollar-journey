@@ -26,15 +26,20 @@ export interface Trading212PortfolioResponse {
 /**
  * Fetches accounts from Trading 212 API
  * T212 returns aggregate portfolio data, we normalize it to account array format
+ * @param apiKey - The Trading 212 API key
+ * @param isDemo - If true, use demo environment; otherwise use live environment
  */
-export async function fetchTrading212Accounts(apiKey: string): Promise<Trading212Account[]> {
-  // T212 API base URL
-  const baseUrl = 'https://live.trading212.com/api/v0';
+export async function fetchTrading212Accounts(apiKey: string, isDemo?: boolean): Promise<Trading212Account[]> {
+  // Sanitize API key by trimming whitespace
+  const cleanKey = apiKey.trim();
+
+  // T212 API base URL - use demo or live environment
+  const baseUrl = isDemo ? 'https://demo.trading212.com/api/v0' : 'https://live.trading212.com/api/v0';
 
   // Fetch account cash info
   const cashResponse = await fetch(`${baseUrl}/equity/account/cash`, {
     headers: {
-      'Authorization': apiKey,
+      'Authorization': cleanKey,
     },
   });
 
@@ -57,10 +62,12 @@ export async function fetchTrading212Accounts(apiKey: string): Promise<Trading21
 
 /**
  * Validates a Trading 212 API key
+ * @param apiKey - The Trading 212 API key
+ * @param isDemo - If true, use demo environment; otherwise use live environment
  */
-export async function validateTrading212Key(apiKey: string): Promise<boolean> {
+export async function validateTrading212Key(apiKey: string, isDemo?: boolean): Promise<boolean> {
   try {
-    await fetchTrading212Accounts(apiKey);
+    await fetchTrading212Accounts(apiKey, isDemo);
     return true;
   } catch {
     return false;
@@ -69,9 +76,11 @@ export async function validateTrading212Key(apiKey: string): Promise<boolean> {
 
 /**
  * Fetches current portfolio value for sync
+ * @param apiKey - The Trading 212 API key
+ * @param isDemo - If true, use demo environment; otherwise use live environment
  */
-export async function fetchTrading212Balance(apiKey: string): Promise<{ balance: number; currency: string }> {
-  const accounts = await fetchTrading212Accounts(apiKey);
+export async function fetchTrading212Balance(apiKey: string, isDemo?: boolean): Promise<{ balance: number; currency: string }> {
+  const accounts = await fetchTrading212Accounts(apiKey, isDemo);
   const main = accounts[0];
   return { balance: main.balance, currency: main.currency };
 }
@@ -86,13 +95,19 @@ export interface Trading212Data {
 /**
  * Fetches cash account data from Trading 212 API
  * Returns normalized data with total, free, invested, and currency
+ * @param apiKey - The Trading 212 API key
+ * @param isDemo - If true, use demo environment; otherwise use live environment
  */
-export async function fetchTrading212Data(apiKey: string): Promise<Trading212Data> {
-  const baseUrl = 'https://live.trading212.com/api/v0';
+export async function fetchTrading212Data(apiKey: string, isDemo?: boolean): Promise<Trading212Data> {
+  // Sanitize API key by trimming whitespace
+  const cleanKey = apiKey.trim();
+
+  // T212 API base URL - use demo or live environment
+  const baseUrl = isDemo ? 'https://demo.trading212.com/api/v0' : 'https://live.trading212.com/api/v0';
 
   const response = await fetch(`${baseUrl}/equity/account/cash`, {
     headers: {
-      'Authorization': apiKey,
+      'Authorization': cleanKey,
     },
   });
 
