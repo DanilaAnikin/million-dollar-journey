@@ -1,4 +1,11 @@
-# Integration Components
+# Integration Components (Deprecated)
+
+> **Note:** These components are currently unused. The app has pivoted to a manual import
+> system (CSV/Excel) instead of live API connections. These components are retained for
+> reference in case API integrations are revisited in the future.
+>
+> See `/src/app/automation/page.tsx` for the current Import Hub implementation and
+> `/src/lib/services/parsers/` for the CSV parsers (Trading 212, XTB, Generic).
 
 Reusable components for connecting external integrations (Trading 212, XTB, GoCardless).
 

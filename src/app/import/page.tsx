@@ -13,9 +13,15 @@ import {
   ArrowLeft,
   Loader2,
   Check,
+  AlertTriangle,
+  FileSpreadsheet,
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  Coins,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -23,14 +29,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/ui/alert';
 import { FileUpload, PreviewTable, FieldMapping } from '@/components/import';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { getAccountsForTransactions } from '@/app/actions/transactions';
 import { createTransaction } from '@/app/actions/transactions';
+import { checkForDuplicates } from '@/app/actions/import';
+import {
+  parseTrading212CSV,
+  parseXTBCSV,
+  parseGenericCSV,
+  detectColumnMappings,
+} from '@/lib/services/parsers';
+import type { ParserResult, ParsedTransaction, ColumnMapping } from '@/lib/services/parsers/types';
 import type { Account, Currency, TransactionType } from '@/types/database';
 import { cn } from '@/lib/utils';
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
+type ParserType = 'generic' | 'trading212' | 'xtb';
 
 interface ParsedData {
   headers: string[];
@@ -39,15 +59,19 @@ interface ParsedData {
 }
 
 const STEPS = [
-  { step: 1, icon: Upload, labelKey: 'import.step1' },
-  { step: 2, icon: TableProperties, labelKey: 'import.step2' },
-  { step: 3, icon: Settings2, labelKey: 'import.step3' },
-  { step: 4, icon: CheckCircle2, labelKey: 'import.step4' },
+  { step: 1, icon: Upload, label: 'Upload' },
+  { step: 2, icon: TableProperties, label: 'Map' },
+  { step: 3, icon: Settings2, label: 'Configure' },
+  { step: 4, icon: FileSpreadsheet, label: 'Preview' },
+  { step: 5, icon: CheckCircle2, label: 'Import' },
 ] as const;
 
 export default function ImportPage() {
   const { t } = useLanguage();
   const router = useRouter();
+
+  // Parser type from automation page
+  const [parserType, setParserType] = useState<ParserType>('generic');
 
   // State
   const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -62,13 +86,31 @@ export default function ImportPage() {
   const [importedCount, setImportedCount] = useState(0);
   const [importComplete, setImportComplete] = useState(false);
 
-  // Load accounts on mount
+  // Parser result for preview
+  const [parserResult, setParserResult] = useState<ParserResult | null>(null);
+  const [duplicates, setDuplicates] = useState<Array<{
+    row: number;
+    date: string;
+    amount: string | number;
+    description?: string;
+    existingId: string;
+  }>>([]);
+  const [skipDuplicates, setSkipDuplicates] = useState(true);
+
+  // Load accounts and check for parser type from session
   useEffect(() => {
     async function loadAccounts() {
       const data = await getAccountsForTransactions();
       setAccounts(data as Account[]);
     }
     loadAccounts();
+
+    // Check for parser type from automation page
+    const savedParser = sessionStorage.getItem('importParser');
+    if (savedParser) {
+      setParserType(savedParser as ParserType);
+      sessionStorage.removeItem('importParser');
+    }
   }, []);
 
   // Handle file selection
@@ -91,10 +133,23 @@ export default function ImportPage() {
           allData,
         });
 
-        // Initialize mapping with 'skip' for all columns
+        // Auto-detect column mappings
+        const detected = detectColumnMappings(headers);
         const initialMapping: Record<string, FieldMapping> = {};
         headers.forEach((h) => {
-          initialMapping[h] = 'skip';
+          if (detected.date === h) {
+            initialMapping[h] = 'date';
+          } else if (detected.amount === h) {
+            initialMapping[h] = 'amount';
+          } else if (detected.description === h) {
+            initialMapping[h] = 'description';
+          } else if (detected.currency === h) {
+            initialMapping[h] = 'currency';
+          } else if (detected.type === h) {
+            initialMapping[h] = 'type';
+          } else {
+            initialMapping[h] = 'skip';
+          }
         });
         setColumnMapping(initialMapping);
       },
@@ -110,6 +165,8 @@ export default function ImportPage() {
     setSelectedFile(null);
     setParsedData(null);
     setColumnMapping({});
+    setParserResult(null);
+    setDuplicates([]);
   }, []);
 
   // Handle mapping change
@@ -123,30 +180,94 @@ export default function ImportPage() {
     []
   );
 
+  // Process data with parser
+  const processWithParser = useCallback(async () => {
+    if (!parsedData) return;
+
+    let result: ParserResult;
+
+    const selectedAccount = accounts.find(a => a.id === selectedAccountId);
+    const accountCurrency = selectedAccount?.currency || 'USD';
+
+    if (parserType === 'trading212') {
+      result = parseTrading212CSV(parsedData.allData, {
+        accountCurrency,
+      });
+    } else if (parserType === 'xtb') {
+      result = parseXTBCSV(parsedData.allData, {
+        defaultCurrency: accountCurrency,
+      });
+    } else {
+      // Build column mapping for generic parser
+      const mapping: ColumnMapping = {
+        date: '',
+        amount: '',
+      };
+
+      for (const [col, field] of Object.entries(columnMapping)) {
+        if (field === 'date') mapping.date = col;
+        if (field === 'amount') mapping.amount = col;
+        if (field === 'description') mapping.description = col;
+        if (field === 'currency') mapping.currency = col;
+        if (field === 'type') mapping.type = col;
+      }
+
+      result = parseGenericCSV(parsedData.allData, mapping, {
+        defaultCurrency: accountCurrency,
+        defaultType,
+        inferTypeFromSign: true,
+      });
+    }
+
+    setParserResult(result);
+
+    // Check for duplicates
+    if (selectedAccountId && result.transactions.length > 0) {
+      const importRows = result.transactions.map(tx => ({
+        date: tx.date,
+        amount: tx.amount,
+        description: tx.description,
+        currency: tx.currency,
+        type: tx.type,
+        hash: tx.hash,
+      }));
+
+      const { duplicates: foundDuplicates } = await checkForDuplicates(importRows, selectedAccountId);
+      setDuplicates(foundDuplicates);
+    }
+  }, [parsedData, parserType, columnMapping, selectedAccountId, accounts, defaultType]);
+
   // Check if step can proceed
   const canProceed = useCallback(() => {
     switch (currentStep) {
       case 1:
         return selectedFile !== null && parsedData !== null;
       case 2:
+        if (parserType !== 'generic') return true;
         const dateIsMapped = Object.values(columnMapping).includes('date');
         const amountIsMapped = Object.values(columnMapping).includes('amount');
         return dateIsMapped && amountIsMapped;
       case 3:
         return selectedAccountId !== '';
       case 4:
+        return parserResult !== null && parserResult.transactions.length > 0;
+      case 5:
         return true;
       default:
         return false;
     }
-  }, [currentStep, selectedFile, parsedData, columnMapping, selectedAccountId]);
+  }, [currentStep, selectedFile, parsedData, columnMapping, selectedAccountId, parserResult, parserType]);
 
   // Navigation
-  const goNext = useCallback(() => {
-    if (currentStep < 4 && canProceed()) {
+  const goNext = useCallback(async () => {
+    if (currentStep < 5 && canProceed()) {
+      // When moving to preview step, process data
+      if (currentStep === 3) {
+        await processWithParser();
+      }
       setCurrentStep((prev) => (prev + 1) as Step);
     }
-  }, [currentStep, canProceed]);
+  }, [currentStep, canProceed, processWithParser]);
 
   const goBack = useCallback(() => {
     if (currentStep > 1) {
@@ -156,23 +277,10 @@ export default function ImportPage() {
 
   // Import transactions
   const handleImport = useCallback(async () => {
-    if (!parsedData || !selectedAccountId) return;
+    if (!parserResult || !selectedAccountId) return;
 
     setIsImporting(true);
     setImportedCount(0);
-
-    // Find which columns map to which fields
-    const dateColumn = Object.entries(columnMapping).find(([, v]) => v === 'date')?.[0];
-    const amountColumn = Object.entries(columnMapping).find(([, v]) => v === 'amount')?.[0];
-    const descriptionColumn = Object.entries(columnMapping).find(([, v]) => v === 'description')?.[0];
-    const currencyColumn = Object.entries(columnMapping).find(([, v]) => v === 'currency')?.[0];
-    const typeColumn = Object.entries(columnMapping).find(([, v]) => v === 'type')?.[0];
-
-    if (!dateColumn || !amountColumn) {
-      toast.error(t('import.requiredFields'));
-      setIsImporting(false);
-      return;
-    }
 
     const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
     const accountCurrency = selectedAccount?.currency || 'USD';
@@ -180,106 +288,26 @@ export default function ImportPage() {
     let successCount = 0;
     let errorCount = 0;
 
-    for (const row of parsedData.allData) {
+    // Filter out duplicates if skipping
+    let transactionsToImport = parserResult.transactions;
+    if (skipDuplicates && duplicates.length > 0) {
+      const duplicateHashes = new Set(duplicates.map(d =>
+        `${d.date}-${d.amount}-${d.description || ''}`
+      ));
+      transactionsToImport = transactionsToImport.filter(tx =>
+        !duplicateHashes.has(`${tx.date}-${tx.amount}-${tx.description}`)
+      );
+    }
+
+    for (const tx of transactionsToImport) {
       try {
-        // Parse date
-        const dateStr = row[dateColumn];
-        if (!dateStr) continue;
-
-        // Try to parse date - handle various formats
-        let parsedDate: Date;
-        if (dateStr.includes('/')) {
-          // MM/DD/YYYY or DD/MM/YYYY
-          const parts = dateStr.split('/');
-          if (parts.length === 3) {
-            // Assume MM/DD/YYYY
-            parsedDate = new Date(`${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`);
-          } else {
-            parsedDate = new Date(dateStr);
-          }
-        } else if (dateStr.includes('.')) {
-          // DD.MM.YYYY (European format)
-          const parts = dateStr.split('.');
-          if (parts.length === 3) {
-            parsedDate = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
-          } else {
-            parsedDate = new Date(dateStr);
-          }
-        } else {
-          parsedDate = new Date(dateStr);
-        }
-
-        if (isNaN(parsedDate.getTime())) continue;
-
-        // Parse amount
-        let amountStr = row[amountColumn];
-        if (!amountStr) continue;
-
-        // Clean amount string - handle various formats
-        amountStr = amountStr.replace(/[^\d.,-]/g, '');
-        // Handle European format (1.234,56 -> 1234.56)
-        if (amountStr.includes(',') && amountStr.includes('.')) {
-          if (amountStr.lastIndexOf(',') > amountStr.lastIndexOf('.')) {
-            // European: 1.234,56
-            amountStr = amountStr.replace(/\./g, '').replace(',', '.');
-          } else {
-            // US: 1,234.56
-            amountStr = amountStr.replace(/,/g, '');
-          }
-        } else if (amountStr.includes(',') && !amountStr.includes('.')) {
-          // Could be European decimal or US thousands
-          const parts = amountStr.split(',');
-          if (parts.length === 2 && parts[1].length <= 2) {
-            // European decimal: 1234,56
-            amountStr = amountStr.replace(',', '.');
-          } else {
-            // US thousands: 1,234
-            amountStr = amountStr.replace(/,/g, '');
-          }
-        }
-
-        const amount = Math.abs(parseFloat(amountStr));
-        if (isNaN(amount)) continue;
-
-        // Determine transaction type
-        let type: TransactionType = defaultType;
-        if (typeColumn && row[typeColumn]) {
-          const typeValue = row[typeColumn].toLowerCase();
-          if (typeValue.includes('income') || typeValue.includes('prijem') || typeValue.includes('+')) {
-            type = 'income';
-          } else if (typeValue.includes('expense') || typeValue.includes('vydaj') || typeValue.includes('-')) {
-            type = 'expense';
-          }
-        } else {
-          // Infer from original amount sign if no type column
-          const originalAmount = row[amountColumn];
-          if (originalAmount.startsWith('-') || originalAmount.includes('-')) {
-            type = 'expense';
-          } else if (originalAmount.startsWith('+')) {
-            type = 'income';
-          }
-        }
-
-        // Get description
-        const description = descriptionColumn ? row[descriptionColumn] : undefined;
-
-        // Get currency
-        let currency: Currency = accountCurrency;
-        if (currencyColumn && row[currencyColumn]) {
-          const currencyValue = row[currencyColumn].toUpperCase().trim();
-          if (['USD', 'EUR', 'GBP', 'CZK', 'JPY', 'CHF', 'CAD', 'AUD'].includes(currencyValue)) {
-            currency = currencyValue as Currency;
-          }
-        }
-
-        // Create transaction
         const result = await createTransaction({
           accountId: selectedAccountId,
-          type,
-          amount,
-          currency,
-          description,
-          date: parsedDate.toISOString().split('T')[0],
+          type: tx.type,
+          amount: tx.amount,
+          currency: (tx.currency as Currency) || accountCurrency,
+          description: tx.description,
+          date: tx.date,
           category: defaultCategory || undefined,
         });
 
@@ -290,7 +318,7 @@ export default function ImportPage() {
           setImportedCount(successCount);
         }
       } catch (error) {
-        console.error('Error importing row:', error);
+        console.error('Error importing transaction:', error);
         errorCount++;
       }
     }
@@ -304,7 +332,7 @@ export default function ImportPage() {
     if (errorCount > 0) {
       toast.error(`${errorCount} transactions failed to import`);
     }
-  }, [parsedData, selectedAccountId, columnMapping, accounts, defaultType, defaultCategory, t]);
+  }, [parserResult, selectedAccountId, accounts, defaultCategory, t, skipDuplicates, duplicates]);
 
   // Reset for new import
   const handleStartOver = useCallback(() => {
@@ -317,7 +345,17 @@ export default function ImportPage() {
     setDefaultCategory('');
     setImportedCount(0);
     setImportComplete(false);
+    setParserResult(null);
+    setDuplicates([]);
   }, []);
+
+  // Format currency
+  const formatCurrency = (amount: number, currency: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency || 'USD',
+    }).format(amount);
+  };
 
   // Render step content
   const renderStepContent = () => {
@@ -330,18 +368,43 @@ export default function ImportPage() {
               selectedFile={selectedFile}
               onClear={handleFileClear}
             />
+
+            {parserType !== 'generic' && (
+              <Alert>
+                <FileSpreadsheet className="h-4 w-4" />
+                <AlertTitle>
+                  {parserType === 'trading212' ? 'Trading 212' : 'XTB'} Parser Selected
+                </AlertTitle>
+                <AlertDescription>
+                  Columns will be automatically mapped based on the {parserType === 'trading212' ? 'Trading 212' : 'XTB'} export format.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         );
 
       case 2:
         if (!parsedData) return null;
         return (
-          <PreviewTable
-            headers={parsedData.headers}
-            rows={parsedData.rows}
-            columnMapping={columnMapping}
-            onMappingChange={handleMappingChange}
-          />
+          <div className="space-y-4">
+            {parserType !== 'generic' ? (
+              <Alert>
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertTitle>Auto-mapping enabled</AlertTitle>
+                <AlertDescription>
+                  The {parserType === 'trading212' ? 'Trading 212' : 'XTB'} parser will automatically map columns.
+                  You can continue to the next step.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <PreviewTable
+                headers={parsedData.headers}
+                rows={parsedData.rows}
+                columnMapping={columnMapping}
+                onMappingChange={handleMappingChange}
+              />
+            )}
+          </div>
         );
 
       case 3:
@@ -350,11 +413,11 @@ export default function ImportPage() {
             {/* Account Selection */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground">
-                {t('import.selectAccount')} *
+                Target Account *
               </label>
               <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder={t('transactions.selectAccount')} />
+                  <SelectValue placeholder="Select an account..." />
                 </SelectTrigger>
                 <SelectContent>
                   {accounts.map((account) => (
@@ -366,40 +429,43 @@ export default function ImportPage() {
               </Select>
             </div>
 
-            {/* Default Transaction Type */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">
-                {t('import.defaultType')}
-              </label>
-              <Select value={defaultType} onValueChange={(v) => setDefaultType(v as 'income' | 'expense')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="income">{t('transactions.income')}</SelectItem>
-                  <SelectItem value="expense">{t('transactions.expense')}</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Used when transaction type cannot be determined from the data
-              </p>
-            </div>
+            {/* Default Transaction Type (only for generic parser) */}
+            {parserType === 'generic' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Default Transaction Type
+                </label>
+                <Select value={defaultType} onValueChange={(v) => setDefaultType(v as 'income' | 'expense')}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="income">{t('transactions.income')}</SelectItem>
+                    <SelectItem value="expense">{t('transactions.expense')}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Used when transaction type cannot be determined from the data
+                </p>
+              </div>
+            )}
 
             {/* Default Category (optional) */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground">
-                {t('import.defaultCategory')}
+                Default Category (optional)
               </label>
               <Select value={defaultCategory || 'none'} onValueChange={(v) => setDefaultCategory(v === 'none' ? '' : v)}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder={t('import.noCategory')} />
+                  <SelectValue placeholder="No category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">{t('import.noCategory')}</SelectItem>
+                  <SelectItem value="none">No category</SelectItem>
                   <SelectItem value="groceries">Groceries</SelectItem>
                   <SelectItem value="utilities">Utilities</SelectItem>
                   <SelectItem value="transport">Transport</SelectItem>
                   <SelectItem value="entertainment">Entertainment</SelectItem>
+                  <SelectItem value="investment">Investment</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -410,7 +476,7 @@ export default function ImportPage() {
               <Card className="rounded-2xl bg-muted/50">
                 <CardContent className="pt-6">
                   <p className="text-sm font-medium">
-                    {t('import.rowsToImport').replace('{count}', String(parsedData.allData.length))}
+                    {parsedData.allData.length} rows will be processed
                   </p>
                 </CardContent>
               </Card>
@@ -421,14 +487,189 @@ export default function ImportPage() {
       case 4:
         return (
           <div className="space-y-6">
+            {parserResult && (
+              <>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Card className="rounded-xl">
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                        <FileSpreadsheet className="h-4 w-4" />
+                        <span>Total Rows</span>
+                      </div>
+                      <p className="text-2xl font-bold mt-1">{parserResult.summary.totalRows}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="rounded-xl">
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-2 text-emerald-600 text-sm">
+                        <TrendingUp className="h-4 w-4" />
+                        <span>Income</span>
+                      </div>
+                      <p className="text-2xl font-bold mt-1 text-emerald-600">
+                        {formatCurrency(parserResult.summary.totalIncome, parserResult.summary.currencies[0] || 'USD')}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card className="rounded-xl">
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-2 text-red-600 text-sm">
+                        <TrendingDown className="h-4 w-4" />
+                        <span>Expenses</span>
+                      </div>
+                      <p className="text-2xl font-bold mt-1 text-red-600">
+                        {formatCurrency(parserResult.summary.totalExpenses, parserResult.summary.currencies[0] || 'USD')}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card className="rounded-xl">
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                        <Coins className="h-4 w-4" />
+                        <span>Net Change</span>
+                      </div>
+                      <p className={cn(
+                        "text-2xl font-bold mt-1",
+                        parserResult.summary.netChange >= 0 ? "text-emerald-600" : "text-red-600"
+                      )}>
+                        {parserResult.summary.netChange >= 0 ? '+' : ''}
+                        {formatCurrency(parserResult.summary.netChange, parserResult.summary.currencies[0] || 'USD')}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Date Range */}
+                {parserResult.summary.dateRange.earliest && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>
+                      Date range: {parserResult.summary.dateRange.earliest} to {parserResult.summary.dateRange.latest}
+                    </span>
+                  </div>
+                )}
+
+                {/* Duplicates Warning */}
+                {duplicates.length > 0 && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Potential duplicates found</AlertTitle>
+                    <AlertDescription className="mt-2">
+                      <p>{duplicates.length} transactions appear to already exist in this account.</p>
+                      <div className="flex items-center gap-2 mt-3">
+                        <input
+                          type="checkbox"
+                          id="skipDuplicates"
+                          checked={skipDuplicates}
+                          onChange={(e) => setSkipDuplicates(e.target.checked)}
+                          className="rounded"
+                        />
+                        <label htmlFor="skipDuplicates" className="text-sm">
+                          Skip duplicate transactions ({duplicates.length} will be skipped)
+                        </label>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Parsing Errors */}
+                {parserResult.errors.length > 0 && (
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Some rows could not be parsed</AlertTitle>
+                    <AlertDescription>
+                      <p className="mb-2">{parserResult.errors.length} rows had errors and will be skipped.</p>
+                      <div className="max-h-32 overflow-y-auto text-xs bg-muted rounded p-2">
+                        {parserResult.errors.slice(0, 5).map((err, i) => (
+                          <div key={i}>Row {err.row}: {err.message}</div>
+                        ))}
+                        {parserResult.errors.length > 5 && (
+                          <div className="text-muted-foreground mt-1">
+                            ...and {parserResult.errors.length - 5} more
+                          </div>
+                        )}
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Transaction Preview Table */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium">Transaction Preview (first 10)</h3>
+                  <div className="border rounded-xl overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="text-left p-3 font-medium">Date</th>
+                          <th className="text-left p-3 font-medium">Description</th>
+                          <th className="text-right p-3 font-medium">Amount</th>
+                          <th className="text-left p-3 font-medium">Type</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {parserResult.transactions.slice(0, 10).map((tx, i) => (
+                          <tr key={i} className="border-t">
+                            <td className="p-3">{tx.date}</td>
+                            <td className="p-3 max-w-[200px] truncate">{tx.description}</td>
+                            <td className={cn(
+                              "p-3 text-right font-medium",
+                              tx.type === 'income' ? "text-emerald-600" : "text-red-600"
+                            )}>
+                              {tx.type === 'income' ? '+' : '-'}
+                              {formatCurrency(tx.amount, tx.currency)}
+                            </td>
+                            <td className="p-3">
+                              <span className={cn(
+                                "px-2 py-1 rounded-full text-xs",
+                                tx.type === 'income'
+                                  ? "bg-emerald-500/10 text-emerald-600"
+                                  : "bg-red-500/10 text-red-600"
+                              )}>
+                                {tx.type}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {parserResult.transactions.length > 10 && (
+                      <div className="p-3 text-center text-sm text-muted-foreground bg-muted/30">
+                        ...and {parserResult.transactions.length - 10} more transactions
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Final count */}
+                <Card className="rounded-2xl bg-primary/5 border-primary/20">
+                  <CardContent className="pt-6">
+                    <p className="text-sm font-medium">
+                      Ready to import{' '}
+                      <span className="text-primary">
+                        {skipDuplicates
+                          ? parserResult.transactions.length - duplicates.length
+                          : parserResult.transactions.length}
+                      </span>{' '}
+                      transactions
+                    </p>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-6">
             {!importComplete ? (
               <div className="text-center py-8">
                 {isImporting ? (
                   <div className="space-y-4">
                     <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
-                    <p className="text-lg font-medium">{t('import.importing')}</p>
+                    <p className="text-lg font-medium">Importing transactions...</p>
                     <p className="text-muted-foreground">
-                      {importedCount} / {parsedData?.allData.length || 0}
+                      {importedCount} / {parserResult?.transactions.length || 0}
                     </p>
                   </div>
                 ) : (
@@ -439,14 +680,17 @@ export default function ImportPage() {
                     <div>
                       <p className="text-lg font-medium">Ready to Import</p>
                       <p className="text-muted-foreground mt-1">
-                        {t('import.rowsToImport').replace('{count}', String(parsedData?.allData.length || 0))}
+                        {skipDuplicates
+                          ? (parserResult?.transactions.length || 0) - duplicates.length
+                          : parserResult?.transactions.length || 0}{' '}
+                        transactions will be imported
                       </p>
                     </div>
                     <Button
                       onClick={handleImport}
                       className="btn-premium rounded-2xl h-12 px-8"
                     >
-                      {t('import.importButton')}
+                      Start Import
                     </Button>
                   </div>
                 )}
@@ -457,9 +701,9 @@ export default function ImportPage() {
                   <Check className="h-8 w-8 text-emerald-500" />
                 </div>
                 <div>
-                  <p className="text-lg font-medium">{t('import.importComplete')}</p>
+                  <p className="text-lg font-medium">Import Complete</p>
                   <p className="text-muted-foreground mt-1">
-                    {t('import.success').replace('{count}', String(importedCount))}
+                    Successfully imported {importedCount} transactions
                   </p>
                 </div>
                 <div className="flex gap-3 justify-center">
@@ -468,13 +712,13 @@ export default function ImportPage() {
                     onClick={handleStartOver}
                     className="rounded-2xl h-12"
                   >
-                    {t('import.startOver')}
+                    Import More
                   </Button>
                   <Button
                     onClick={() => router.push('/transactions')}
                     className="btn-premium rounded-2xl h-12"
                   >
-                    {t('import.goToTransactions')}
+                    View Transactions
                   </Button>
                 </div>
               </div>
@@ -491,12 +735,15 @@ export default function ImportPage() {
     <div className="p-4 lg:p-6 space-y-6">
       {/* Header */}
       <div className="pt-2 pb-4">
-        <h1 className="text-2xl font-bold">{t('import.title')}</h1>
+        <h1 className="text-2xl font-bold">Import Transactions</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Import from {parserType === 'generic' ? 'CSV file' : parserType === 'trading212' ? 'Trading 212' : 'XTB'}
+        </p>
       </div>
 
       {/* Step Indicator */}
       <div className="flex items-center justify-between mb-8">
-        {STEPS.map(({ step, icon: Icon, labelKey }, index) => {
+        {STEPS.map(({ step, icon: Icon, label }, index) => {
           const isActive = currentStep === step;
           const isCompleted = currentStep > step;
           const isLast = index === STEPS.length - 1;
@@ -526,7 +773,7 @@ export default function ImportPage() {
                     !isActive && !isCompleted && 'text-muted-foreground'
                   )}
                 >
-                  {t(labelKey)}
+                  {label}
                 </span>
               </div>
               {!isLast && (
@@ -548,7 +795,7 @@ export default function ImportPage() {
       </Card>
 
       {/* Navigation Buttons */}
-      {currentStep !== 4 || !importComplete ? (
+      {currentStep !== 5 || !importComplete ? (
         <div className="flex justify-between">
           <Button
             variant="outline"
@@ -557,15 +804,15 @@ export default function ImportPage() {
             className="rounded-2xl h-12"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {t('import.back')}
+            Back
           </Button>
-          {currentStep < 4 && (
+          {currentStep < 5 && (
             <Button
               onClick={goNext}
               disabled={!canProceed()}
               className="btn-premium rounded-2xl h-12"
             >
-              {t('import.next')}
+              {currentStep === 4 ? 'Continue to Import' : 'Next'}
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           )}

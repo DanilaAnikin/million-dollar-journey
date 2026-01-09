@@ -16,6 +16,8 @@ export interface ImportRow {
   description?: string;
   currency?: string;
   type?: 'income' | 'expense';
+  /** Hash for duplicate detection */
+  hash?: string;
 }
 
 /**
@@ -229,6 +231,133 @@ function validateRow(row: ImportRow): { valid: boolean; error?: string } {
   }
 
   return { valid: true };
+}
+
+// ============================================================================
+// Duplicate Detection
+// ============================================================================
+
+/**
+ * Generate a hash for a transaction to detect duplicates
+ */
+function generateTransactionHash(
+  date: string,
+  amount: number,
+  description: string
+): string {
+  const input = `${date}-${amount}-${description}`;
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    const char = input.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16);
+}
+
+/**
+ * Check for existing transactions that might be duplicates
+ */
+export async function checkForDuplicates(
+  rows: ImportRow[],
+  accountId: string
+): Promise<{
+  duplicates: Array<{
+    row: number;
+    date: string;
+    amount: string | number;
+    description?: string;
+    existingId: string;
+  }>;
+  unique: ImportRow[];
+}> {
+  const userId = await getAuthenticatedUserId();
+  if (!userId) {
+    return { duplicates: [], unique: rows };
+  }
+
+  const supabase = await createClient();
+
+  // Get date range of import data
+  const dates = rows
+    .map(r => parseDate(r.date))
+    .filter((d): d is string => d !== null);
+
+  if (dates.length === 0) {
+    return { duplicates: [], unique: rows };
+  }
+
+  const minDate = dates.reduce((a, b) => (a < b ? a : b));
+  const maxDate = dates.reduce((a, b) => (a > b ? a : b));
+
+  // Fetch existing transactions in date range
+  const { data: existingTransactions } = await supabase
+    .from('transactions')
+    .select('id, transaction_date, amount, description')
+    .eq('user_id', userId)
+    .eq('account_id', accountId)
+    .gte('transaction_date', minDate)
+    .lte('transaction_date', maxDate);
+
+  if (!existingTransactions || existingTransactions.length === 0) {
+    return { duplicates: [], unique: rows };
+  }
+
+  // Build hash map of existing transactions
+  const existingHashes = new Map<string, string>();
+  for (const tx of existingTransactions) {
+    const hash = generateTransactionHash(
+      tx.transaction_date,
+      tx.amount,
+      tx.description || ''
+    );
+    existingHashes.set(hash, tx.id);
+  }
+
+  // Check each import row
+  const duplicates: Array<{
+    row: number;
+    date: string;
+    amount: string | number;
+    description?: string;
+    existingId: string;
+  }> = [];
+  const unique: ImportRow[] = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const parsedDate = parseDate(row.date);
+    const parsedAmount = typeof row.amount === 'number'
+      ? row.amount
+      : parseFloat(String(row.amount).replace(/[^0-9.-]/g, ''));
+
+    if (!parsedDate || isNaN(parsedAmount)) {
+      unique.push(row);
+      continue;
+    }
+
+    // Check if row has explicit hash or generate one
+    const hash = row.hash || generateTransactionHash(
+      parsedDate,
+      Math.abs(parsedAmount),
+      row.description || ''
+    );
+
+    const existingId = existingHashes.get(hash);
+    if (existingId) {
+      duplicates.push({
+        row: i + 1,
+        date: row.date,
+        amount: row.amount,
+        description: row.description,
+        existingId,
+      });
+    } else {
+      unique.push(row);
+    }
+  }
+
+  return { duplicates, unique };
 }
 
 // ============================================================================
