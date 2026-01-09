@@ -65,7 +65,7 @@ const INTEGRATION_CONFIG = {
   },
   xtb: {
     title: 'Connect XTB',
-    description: 'Enter your XTB API key to automatically sync your trading data.',
+    description: 'Enter your XTB login credentials to automatically sync your trading data.',
     provider: 'xtb',
     requiresApiKey: true,
     placeholderName: 'My XTB Account',
@@ -90,6 +90,9 @@ export function IntegrationModal({
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
+
+  // XTB-specific state
+  const [xtbLogin, setXtbLogin] = useState('');
 
   // Wizard state
   const [step, setStep] = useState<1 | 2>(1);
@@ -128,6 +131,7 @@ export function IntegrationModal({
     setApiKey('');
     setShowApiKey(false);
     setIsDemo(false);
+    setXtbLogin('');
     setError(null);
     setExternalAccounts([]);
     setMappings({});
@@ -140,7 +144,17 @@ export function IntegrationModal({
     if (!config) return;
 
     // Validation
-    if (config.requiresApiKey && !apiKey.trim()) {
+    if (integrationType === 'xtb') {
+      // XTB requires login ID and password
+      if (!xtbLogin.trim()) {
+        setError('XTB Login ID is required');
+        return;
+      }
+      if (!apiKey.trim()) {
+        setError('Password is required');
+        return;
+      }
+    } else if (config.requiresApiKey && !apiKey.trim()) {
       setError('API key is required');
       return;
     }
@@ -148,8 +162,16 @@ export function IntegrationModal({
     setIsLoading(true);
     setError(null);
 
+    // For XTB, we encode credentials for the sync manager:
+    // - Password goes in api_key field
+    // - Login and isDemo go in metadata field (as JSON)
+    const apiKeyToSend = apiKey.trim();
+    const metadataToSend = integrationType === 'xtb'
+      ? JSON.stringify({ login: xtbLogin.trim(), isDemo })
+      : undefined;
+
     try {
-      const result = await validateAndFetchAccounts(config.provider, apiKey.trim(), isDemo);
+      const result = await validateAndFetchAccounts(config.provider, apiKeyToSend, isDemo, metadataToSend);
 
       if (!result.success || !result.accounts) {
         setError(result.error || 'Failed to fetch accounts');
@@ -257,11 +279,17 @@ export function IntegrationModal({
       });
 
       // Create integration with mappings
+      // For XTB: store password in apiKey, and login/isDemo in metadata
+      const metadata = integrationType === 'xtb'
+        ? JSON.stringify({ login: xtbLogin.trim(), isDemo })
+        : undefined;
+
       const result = await createIntegrationWithMappings({
         provider: config.provider,
         name: name.trim() || config.placeholderName,
         apiKey: apiKey.trim(),
         isDemo,
+        metadata,
         mappings: mappingsArray,
       });
 
@@ -341,52 +369,122 @@ export function IntegrationModal({
                   </p>
                 </div>
 
-                {/* API Key */}
-                <div className="space-y-2">
-                  <Label htmlFor="apiKey">API Key *</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="apiKey"
-                      type={showApiKey ? 'text' : 'password'}
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="Enter your API key"
-                      className="pl-10 pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
-                    >
-                      {showApiKey ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    This key is stored securely and only used for read-only access.
-                  </p>
-                </div>
+                {/* XTB-specific fields */}
+                {integrationType === 'xtb' ? (
+                  <>
+                    {/* XTB Login ID */}
+                    <div className="space-y-2">
+                      <Label htmlFor="xtbLogin">XTB Login ID *</Label>
+                      <Input
+                        id="xtbLogin"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={xtbLogin}
+                        onChange={(e) => setXtbLogin(e.target.value)}
+                        placeholder="e.g., 1234567"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Your XTB account login ID (numeric)
+                      </p>
+                    </div>
 
-                {/* Demo Mode Checkbox - Trading 212 only */}
-                {integrationType === 'trading212' && (
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="isDemo"
-                      checked={isDemo}
-                      onCheckedChange={(checked) => setIsDemo(checked === true)}
-                    />
-                    <Label
-                      htmlFor="isDemo"
-                      className="text-sm font-normal cursor-pointer"
-                    >
-                      Use Practice Account (Demo)
-                    </Label>
-                  </div>
+                    {/* XTB Password */}
+                    <div className="space-y-2">
+                      <Label htmlFor="apiKey">Password *</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="apiKey"
+                          type={showApiKey ? 'text' : 'password'}
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          placeholder="Enter your password"
+                          className="pl-10 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowApiKey(!showApiKey)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label={showApiKey ? 'Hide password' : 'Show password'}
+                        >
+                          {showApiKey ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Your credentials are stored securely and only used for read-only access.
+                      </p>
+                    </div>
+
+                    {/* Demo Mode Checkbox - XTB */}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="isDemo"
+                        checked={isDemo}
+                        onCheckedChange={(checked) => setIsDemo(checked === true)}
+                      />
+                      <Label
+                        htmlFor="isDemo"
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        Use Demo Account
+                      </Label>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* API Key for other integrations */}
+                    <div className="space-y-2">
+                      <Label htmlFor="apiKey">API Key *</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="apiKey"
+                          type={showApiKey ? 'text' : 'password'}
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          placeholder="Enter your API key"
+                          className="pl-10 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowApiKey(!showApiKey)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+                        >
+                          {showApiKey ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        This key is stored securely and only used for read-only access.
+                      </p>
+                    </div>
+
+                    {/* Demo Mode Checkbox - Trading 212 only */}
+                    {integrationType === 'trading212' && (
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="isDemo"
+                          checked={isDemo}
+                          onCheckedChange={(checked) => setIsDemo(checked === true)}
+                        />
+                        <Label
+                          htmlFor="isDemo"
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          Use Practice Account (Demo)
+                        </Label>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <DialogFooter>

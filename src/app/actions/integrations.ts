@@ -7,8 +7,17 @@ import { executeIntegrationSync } from '@/lib/services/integrations/sync-manager
 
 /**
  * Validates API key and fetches external accounts (for Step 1 of wizard)
+ * @param provider - The integration provider (trading212, xtb, gocardless)
+ * @param apiKey - The API key (or password for XTB)
+ * @param isDemo - Whether to use demo environment
+ * @param metadata - Optional JSON string with provider-specific config (e.g., XTB: {"login": "...", "isDemo": true/false})
  */
-export async function validateAndFetchAccounts(provider: string, apiKey: string, isDemo?: boolean): Promise<{
+export async function validateAndFetchAccounts(
+  provider: string,
+  apiKey: string,
+  isDemo?: boolean,
+  metadata?: string
+): Promise<{
   success: boolean;
   error?: string;
   accounts?: Array<{
@@ -25,9 +34,37 @@ export async function validateAndFetchAccounts(provider: string, apiKey: string,
         const accounts = await fetchTrading212Accounts(apiKey, isDemo);
         return { success: true, accounts };
       }
-      // Add other providers here
-      case 'xtb':
-        return { success: false, error: 'XTB integration not yet implemented' };
+      case 'xtb': {
+        // XTB uses password in apiKey and login/isDemo in metadata
+        const { fetchXTBData } = await import('@/lib/services/integrations/xtb');
+
+        let login: string;
+        let xtbIsDemo: boolean;
+
+        try {
+          const parsedMetadata = JSON.parse(metadata || '{}');
+          login = parsedMetadata.login;
+          xtbIsDemo = parsedMetadata.isDemo ?? false;
+
+          if (!login) {
+            return { success: false, error: 'Missing XTB login ID' };
+          }
+        } catch {
+          return { success: false, error: 'Invalid XTB credentials configuration' };
+        }
+
+        const xtbData = await fetchXTBData(login, apiKey, xtbIsDemo);
+
+        // Return as account array (XTB has single account per login)
+        const accounts = [{
+          id: 'default',
+          name: `XTB ${xtbIsDemo ? 'Demo' : 'Live'} Account`,
+          balance: xtbData.equity,
+          currency: xtbData.currency,
+        }];
+
+        return { success: true, accounts };
+      }
       case 'gocardless':
         return { success: false, error: 'GoCardless uses OAuth, not API key' };
       default:
@@ -84,6 +121,7 @@ export async function createIntegrationWithMappings(data: {
   name: string;
   apiKey: string;
   isDemo?: boolean;
+  metadata?: string; // JSON string for provider-specific config (e.g., XTB: {"login": "...", "isDemo": true/false})
   mappings: Array<{
     externalAccountId: string;
     externalAccountName: string;
@@ -112,6 +150,7 @@ export async function createIntegrationWithMappings(data: {
         provider: data.provider,
         name: data.name,
         api_key: data.apiKey,
+        metadata: data.metadata || null,
         is_demo: data.isDemo ?? false,
         status: 'active',
       })

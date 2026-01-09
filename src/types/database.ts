@@ -252,7 +252,9 @@ export type Database = {
           provider: string
           name: string
           api_key: string
+          metadata: string | null
           status: 'active' | 'error' | 'expired'
+          is_demo: boolean
           last_synced_at: string | null
           created_at: string
           updated_at: string
@@ -263,7 +265,9 @@ export type Database = {
           provider: string
           name: string
           api_key: string
+          metadata?: string | null
           status?: 'active' | 'error' | 'expired'
+          is_demo?: boolean
           last_synced_at?: string | null
           created_at?: string
           updated_at?: string
@@ -274,7 +278,9 @@ export type Database = {
           provider?: string
           name?: string
           api_key?: string
+          metadata?: string | null
           status?: 'active' | 'error' | 'expired'
+          is_demo?: boolean
           last_synced_at?: string | null
           created_at?: string
           updated_at?: string
@@ -444,6 +450,7 @@ export interface Integration {
   provider: IntegrationProvider;
   name: string;
   api_key: string;
+  metadata: string | null; // JSON string for provider-specific config (e.g., XTB: {"login": "...", "isDemo": true/false})
   status: IntegrationStatus;
   is_demo: boolean;
   last_synced_at: string | null;

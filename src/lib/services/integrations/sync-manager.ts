@@ -3,6 +3,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { fetchTrading212Accounts } from './trading212';
+import { fetchXTBData } from './xtb';
 
 export interface SyncResult {
   success: boolean;
@@ -78,7 +79,45 @@ export async function executeIntegrationSync(
       case 'trading212':
         externalAccounts = await fetchTrading212Accounts(integration.api_key, integration.is_demo);
         break;
-      // Add other providers here
+      case 'xtb': {
+        // XTB stores credentials differently:
+        // - api_key contains the password
+        // - metadata contains JSON: {"login": "...", "isDemo": true/false}
+        let login: string;
+        let isDemo: boolean;
+
+        try {
+          const metadata = JSON.parse(integration.metadata || '{}');
+          login = metadata.login;
+          isDemo = metadata.isDemo ?? false;
+
+          if (!login) {
+            throw new Error('Missing login in metadata');
+          }
+        } catch (parseError) {
+          console.error('XTB metadata parse error:', parseError);
+          return {
+            success: false,
+            integrationId,
+            integrationName: integration.name,
+            provider: integration.provider,
+            syncedAccounts: 0,
+            error: 'Invalid XTB credentials configuration'
+          };
+        }
+
+        const password = integration.api_key;
+        const xtbData = await fetchXTBData(login, password, isDemo);
+
+        // Normalize XTB response to account format
+        externalAccounts = [{
+          id: 'default',
+          name: `XTB ${isDemo ? 'Demo' : 'Live'} Account`,
+          balance: xtbData.equity,
+          currency: xtbData.currency,
+        }];
+        break;
+      }
       default:
         return {
           success: false,
