@@ -40,8 +40,8 @@ export interface XTBData {
  * @param isDemo - If true, use demo environment; otherwise use live environment
  */
 export async function fetchXTBData(userId: string, password: string, isDemo?: boolean): Promise<XTBData> {
-  // Use xapi.pro WebSocket endpoints (no trailing slashes)
-  const wsUrl = isDemo ? 'wss://ws.xapi.pro/demo' : 'wss://ws.xapi.pro/real';
+  // Use xtb.com WebSocket endpoints
+  const wsUrl = isDemo ? 'wss://ws.xtb.com/demo' : 'wss://ws.xtb.com/real';
   const TIMEOUT_MS = 10000;
 
   return new Promise((resolve, reject) => {
@@ -86,7 +86,12 @@ export async function fetchXTBData(userId: string, password: string, isDemo?: bo
     }, TIMEOUT_MS);
 
     try {
-      ws = new WebSocket(wsUrl);
+      ws = new WebSocket(wsUrl, {
+        headers: {
+          "Origin": "http://xtb.com",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+      });
 
       ws.on('error', (error) => {
         // Provide detailed error logging for connection issues
