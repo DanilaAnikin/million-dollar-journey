@@ -4,6 +4,7 @@ import { LucideIcon, CheckCircle2, Circle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useClientDate } from '@/lib/hooks/useClientDate';
 
 export interface IntegrationCardProps {
   name: string;
@@ -16,6 +17,7 @@ export interface IntegrationCardProps {
   disabled?: boolean;
   comingSoon?: boolean;
   badge?: 'official' | 'community';
+  lastSynced?: string | null;
 }
 
 export function IntegrationCard({
@@ -29,8 +31,12 @@ export function IntegrationCard({
   disabled = false,
   comingSoon = false,
   badge,
+  lastSynced,
 }: IntegrationCardProps) {
   const isConnected = status === 'connected';
+
+  // Use client-side only date formatting to avoid hydration mismatch
+  const lastSyncedStr = useClientDate(lastSynced, 'Never');
 
   return (
     <Card className={cn(
@@ -93,24 +99,30 @@ export function IntegrationCard({
 
       <CardContent>
         {isConnected ? (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onDisconnect}
-              disabled={disabled}
-              className="flex-1"
-            >
-              Disconnect
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onConnect}
-              disabled={disabled}
-            >
-              Reconfigure
-            </Button>
+          <div className="space-y-3">
+            {/* Last synced info - client-side rendered to avoid hydration mismatch */}
+            <p className="text-xs text-muted-foreground">
+              Last synced: {lastSyncedStr}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onDisconnect}
+                disabled={disabled}
+                className="flex-1"
+              >
+                Disconnect
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onConnect}
+                disabled={disabled}
+              >
+                Reconfigure
+              </Button>
+            </div>
           </div>
         ) : (
           <Button
