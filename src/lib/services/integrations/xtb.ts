@@ -40,7 +40,8 @@ export interface XTBData {
  * @param isDemo - If true, use demo environment; otherwise use live environment
  */
 export async function fetchXTBData(userId: string, password: string, isDemo?: boolean): Promise<XTBData> {
-  const wsUrl = isDemo ? 'wss://ws.xtb.com/demo' : 'wss://ws.xtb.com/real';
+  // Use xapi.pro WebSocket endpoints (no trailing slashes)
+  const wsUrl = isDemo ? 'wss://ws.xapi.pro/demo' : 'wss://ws.xapi.pro/real';
   const TIMEOUT_MS = 10000;
 
   return new Promise((resolve, reject) => {
@@ -81,19 +82,24 @@ export async function fetchXTBData(userId: string, password: string, isDemo?: bo
 
     // Set timeout to avoid hanging
     timeoutId = setTimeout(() => {
-      handleError(new Error('XTB connection timeout'));
+      handleError(new Error(`XTB connection timeout (URL: ${wsUrl})`));
     }, TIMEOUT_MS);
 
     try {
       ws = new WebSocket(wsUrl);
 
       ws.on('error', (error) => {
-        handleError(new Error(`XTB WebSocket error: ${error.message}`));
+        // Provide detailed error logging for connection issues
+        const errorMessage = error.message || 'Unknown error';
+        console.error(`XTB WebSocket connection error - URL: ${wsUrl}, Error: ${errorMessage}`);
+        handleError(new Error(`XTB WebSocket connection failed (URL: ${wsUrl}): ${errorMessage}`));
       });
 
-      ws.on('close', () => {
+      ws.on('close', (code, reason) => {
         if (!isResolved) {
-          handleError(new Error('XTB WebSocket closed unexpectedly'));
+          const reasonStr = reason?.toString() || 'No reason provided';
+          console.error(`XTB WebSocket closed unexpectedly - URL: ${wsUrl}, Code: ${code}, Reason: ${reasonStr}`);
+          handleError(new Error(`XTB WebSocket closed unexpectedly (URL: ${wsUrl}, Code: ${code})`));
         }
       });
 
@@ -161,7 +167,9 @@ export async function fetchXTBData(userId: string, password: string, isDemo?: bo
       });
 
     } catch (error) {
-      handleError(error instanceof Error ? error : new Error('XTB connection failed'));
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`XTB WebSocket initialization failed - URL: ${wsUrl}, Error: ${errorMessage}`);
+      handleError(new Error(`XTB WebSocket initialization failed (URL: ${wsUrl}): ${errorMessage}`));
     }
   });
 }

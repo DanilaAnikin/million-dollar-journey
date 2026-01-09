@@ -107,6 +107,10 @@ export function IntegrationModal({
 
   const config = integrationType ? INTEGRATION_CONFIG[integrationType] : null;
 
+  // Hydration fix: only render modal content after client-side mount
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   // Fetch user's existing accounts when modal opens
   useEffect(() => {
     if (open) {
@@ -312,7 +316,8 @@ export function IntegrationModal({
     setError(null);
   };
 
-  if (!config) return null;
+  // Don't render until mounted (prevents hydration mismatch) or if no config
+  if (!mounted || !config) return null;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
