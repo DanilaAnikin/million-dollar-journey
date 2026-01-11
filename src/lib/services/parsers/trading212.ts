@@ -51,19 +51,26 @@ const INCOME_ACTIONS = [
   'dividend (ordinary)',
   'dividend (return of capital)',
   'interest on cash',
+  'lending interest',
 ];
 
 const EXPENSE_ACTIONS = [
   'withdrawal',
   'withdrawal fee',
+  'currency conversion fee',
 ];
 
-// Actions to skip (internal transfers, stock transactions that don't affect cash balance directly)
+// Actions to skip (internal transfers, stock transactions that don't affect net worth)
+// Buy/sell are asset swaps (Cash -> Equity), not expenses/income
 const SKIP_ACTIONS = [
   'market buy',
   'market sell',
   'limit buy',
   'limit sell',
+  'stop buy',
+  'stop sell',
+  'stop limit buy',
+  'stop limit sell',
   'stock split',
   'custody fee',
 ];
@@ -170,13 +177,19 @@ export function parseTrading212CSV(
       const notes = row[TRADING212_COLUMNS.notes] || row['Notes'] || '';
       const actionCapitalized = action.charAt(0).toUpperCase() + action.slice(1);
 
-      let description = actionCapitalized;
-      if (ticker) {
-        description += ` - ${ticker}`;
-        if (name) description += ` (${name})`;
-      }
-      if (notes) {
-        description += ` - ${notes}`;
+      let description: string;
+      if (action === 'lending interest') {
+        // User-friendly description for share lending income
+        description = ticker ? `Interest on shares - ${ticker}` : 'Interest on shares';
+      } else {
+        description = actionCapitalized;
+        if (ticker) {
+          description += ` - ${ticker}`;
+          if (name) description += ` (${name})`;
+        }
+        if (notes) {
+          description += ` - ${notes}`;
+        }
       }
 
       // Get currency from the total column header or default
@@ -205,6 +218,23 @@ export function parseTrading212CSV(
         totalIncome += Math.abs(amount);
       } else {
         totalExpenses += Math.abs(amount);
+      }
+
+      // Check for currency conversion fee column (separate from action type)
+      const conversionFeeStr = row[TRADING212_COLUMNS.conversionFee] || row['Currency conversion fee'] || '';
+      const conversionFee = parseTrading212Amount(conversionFeeStr);
+      if (conversionFee && conversionFee !== 0) {
+        const feeTransaction: ParsedTransaction = {
+          date,
+          amount: Math.abs(conversionFee),
+          description: `Currency conversion fee${ticker ? ` - ${ticker}` : ''}`,
+          currency,
+          type: 'expense',
+          hash: generateHash(`${id || date}-conversion-fee-${conversionFee}`),
+          originalRow: row,
+        };
+        transactions.push(feeTransaction);
+        totalExpenses += Math.abs(conversionFee);
       }
     } catch (error) {
       errors.push({
