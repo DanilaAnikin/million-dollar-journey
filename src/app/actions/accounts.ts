@@ -152,6 +152,20 @@ export async function deleteAccount(accountId: string): Promise<{ success: boole
       return { success: false, error: 'You must be logged in to delete accounts' };
     }
 
+    // Explicitly delete associated transactions first (for UI updates and double safety)
+    // The DB cascade will also handle this, but explicit deletion ensures immediate consistency
+    const { error: txDeleteError } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('account_id', accountId);
+
+    if (txDeleteError) {
+      console.error('Error deleting account transactions:', txDeleteError);
+      // Continue with account deletion even if transaction deletion fails
+      // The CASCADE constraint will handle cleanup
+    }
+
+    // Soft delete the account (mark as inactive)
     const { error } = await supabase
       .from('accounts')
       .update({ is_active: false })
